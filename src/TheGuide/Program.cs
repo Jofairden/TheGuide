@@ -17,7 +17,7 @@ namespace TheGuide
             new Program().Start().GetAwaiter().GetResult();
         }
 
-        public static string version = "r-1.0.3";
+        public static string version = "r-1.0.3.1";
 
         private static ulong guildid = 103110554649894912;
         private static ulong clientid = 239075803290271745;
@@ -40,6 +40,7 @@ namespace TheGuide
         // open ssh shell to vps and connect
         // cd ./bot
         // screen -S TheGuide dotnet TheGuide.dll
+        // to get out of the screen: ctrl + a + ctrl + d
         //
         // To update:
         // open cmd

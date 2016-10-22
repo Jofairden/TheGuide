@@ -34,6 +34,10 @@ namespace TheGuide
         {
             var message = parameterMessage as SocketUserMessage;
             int argPos = 0;
+
+            if (message == null || (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
+                return;
+
             var cooldownTime = cooldowns.FirstOrDefault(x => x.Key == message.Author.Id);
             if (cooldownTime.Key != default(ulong))
             {
@@ -45,9 +49,6 @@ namespace TheGuide
                 else
                     cooldowns.Remove(cooldownTime.Key);
             }
-
-            if (message == null || (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
-                return;
 
             var context = new CommandContext(client, message);
             var result = await service.Execute(context, argPos, map);
