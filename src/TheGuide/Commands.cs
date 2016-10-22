@@ -2,7 +2,6 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -21,7 +20,7 @@ namespace TheGuide
             map = _map;
         }
 
-        internal async Task QuickSend(CommandContext context, string msg, string opt = null)
+        public static async Task QuickSend(CommandContext context, string msg, string opt = null)
         {
             var output = await context.Channel?.SendMessageAsync(msg);
             if (opt != null)
@@ -146,7 +145,7 @@ namespace TheGuide
         public async Task github([Remainder] string opt = null)
         {
             await QuickSend(Context, 
-                $"<https://github.com/gorateron/theguide-discord>", 
+                $"Here's how I am made! <https://github.com/gorateron/theguide-discord>", 
                 opt);
         }
 
@@ -154,10 +153,14 @@ namespace TheGuide
         [Alias("quicklink", "ql", "link")]
         public async Task links([Remainder] string opt = null)
         {
+            var updateschannel = await Context.Guild.GetTextChannelAsync(103130530886725632) as SocketTextChannel;
+            var faqchannel = await Context.Guild.GetTextChannelAsync(103128668422832128) as SocketTextChannel;
             await QuickSend(Context,
                 $"**tML thead**: <http://forums.terraria.org/index.php?threads/1-3-tmodloader-a-modding-api.23726/>\n" +
-                $"**github**: <https://github.com/bluemagic123/tModLoader/>\n" +
-                $"**releases**: <https://github.com/bluemagic123/tModLoader/releases>",
+                $"**tML github**: <https://github.com/bluemagic123/tModLoader/>\n" +
+                $"**tML releases**: <https://github.com/bluemagic123/tModLoader/releases>\n" + 
+                $"**tML updates**: " + (updateschannel != null ? updateschannel.Mention : "#tmodloader-updates") + "\n" +
+                $"**FAQ**: " + (faqchannel != null ? faqchannel.Mention : "#faq") +
                 opt);
         }
     }

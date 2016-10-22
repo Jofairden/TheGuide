@@ -10,6 +10,7 @@ namespace TheGuide
 {
     public class CommandHandler
     {
+        public static int cdDelay = 2500;
         public static int delNotifDelay = 5000;
         public static char prefixChar = '?';
         private CommandService service;
@@ -55,12 +56,13 @@ namespace TheGuide
 
             if (!result.IsSuccess)
             {
-                var channel = await context.User?.CreateDMChannelAsync();
-                await channel?.SendMessageAsync($"**Error** (on command <{message.Content}>): {result.ToString()}");
+                //var channel = await context.User?.CreateDMChannelAsync();
+                //await channel?.SendMessageAsync($"**Error** (on command <{message.Content}>): {result.ToString()}");
+                await Commands.QuickSend(context, $"**Error** (on command <{message.Content}>): {result.ToString()}", "-d");
             }
             else
             {
-                cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(2500));
+                cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(cdDelay));
                 string[] opt = SplitOpt(message.ToString());
                 if (opt.Any(x => x[0] == 'd'))
                 {
