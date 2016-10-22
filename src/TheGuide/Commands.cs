@@ -79,7 +79,8 @@ namespace TheGuide
             var role = Context.Guild.Roles.FirstOrDefault(x => x.Name == "DEVELOPERS");
             string txt = role != null && role.IsMentionable ? role.Mention : "@DEVELOPERS";
             await QuickSend(Context, 
-                $"**Regarding asking questions to Terraria developers**\nAsking {txt} about vanilla stuff (as in: questions/suggestions/asking about future stuff etc.): They **WILL NOT** respond, and please **DO NOT** even try starting a discussion. Thank you.",
+                $"**Regarding asking questions to Terraria developers**\n" +
+                $"Asking {txt} about vanilla stuff (as in: questions/suggestions/asking about future stuff etc.): They **WILL NOT** respond, and please **DO NOT** even try starting a discussion. Thank you.",
                 opt);
         }
 
@@ -90,7 +91,8 @@ namespace TheGuide
             var channel = (Context.Guild as SocketGuild)?.Channels.FirstOrDefault(x => x.Name == "help");
             string txt = channel != null ? (channel as SocketTextChannel)?.Mention : "#help";
             await QuickSend(Context, 
-                $"**When you require assistance**\nPlease go to {txt}, provide **a stack trace** _along with your code_ posted on pastebin or hastebin. Thank you.",
+                $"**When you require assistance**\n" +
+                $"Please go to {txt}, provide **a stack trace** _along with your code_ posted on pastebin or hastebin. Thank you.",
                 opt);
         }
 
@@ -109,7 +111,9 @@ namespace TheGuide
                 total = total.Substring(2);
             //var channel = await Context.User?.CreateDMChannelAsync();
             await QuickSend(Context, 
-                $"**Usable commands for {Context.User.Username}**\n{total}\n\nFollow the command with ``-d`` to destroy it after {CommandHandler.delNotifDelay / 1000} seconds.",
+                $"**Usable commands for {Context.User.Username}**\n" +
+                $"{total}\n\n" +
+                $"Follow the command with ``-d`` to destroy it after {CommandHandler.delNotifDelay / 1000} seconds.",
                 opt);
         }
 
@@ -143,6 +147,17 @@ namespace TheGuide
         {
             await QuickSend(Context, 
                 $"<https://github.com/gorateron/theguide-discord>", 
+                opt);
+        }
+
+        [Command("links")]
+        [Alias("quicklink", "ql", "link")]
+        public async Task links([Remainder] string opt = null)
+        {
+            await QuickSend(Context,
+                $"**tML thead**: <http://forums.terraria.org/index.php?threads/1-3-tmodloader-a-modding-api.23726/>\n" +
+                $"**github**: <https://github.com/bluemagic123/tModLoader/>\n" +
+                $"**releases**: <https://github.com/bluemagic123/tModLoader/releases>",
                 opt);
         }
     }

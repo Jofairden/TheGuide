@@ -60,7 +60,7 @@ namespace TheGuide
             }
             else
             {
-                cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(25000));
+                cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(2500));
                 string[] opt = SplitOpt(message.ToString());
                 if (opt.Any(x => x[0] == 'd'))
                 {

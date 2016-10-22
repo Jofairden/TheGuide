@@ -17,7 +17,7 @@ namespace TheGuide
             new Program().Start().GetAwaiter().GetResult();
         }
 
-        public static string version = "r-1.0.3.1";
+        public static string version = "r-1.0.3.3.1";
 
         private static ulong guildid = 103110554649894912;
         private static ulong clientid = 239075803290271745;
@@ -26,7 +26,7 @@ namespace TheGuide
         private CommandHandler handler;
         private string token
         {
-            get { return "FUCKHERRIGHTINTHEPUSSY"; }
+            get { return ""; }
         }
         private static Timer[] timers = new Timer[Enum.GetNames(typeof(TimerType)).Length];
         private Dictionary<ulong, DateTime> cooldowns = new Dictionary<ulong, DateTime>();
@@ -90,8 +90,10 @@ namespace TheGuide
                 var guild = client.Guilds.FirstOrDefault(x => x.Id == guildid);
                 if (guild != null)
                 {
-                    var channel = guild?.GetChannel(guild.DefaultChannelId);
-                    await (channel as SocketTextChannel)?.SendMessageAsync($"Hey there, I am the guide! :wave: I am here to be useful. I am made by gorateron, use ``{CommandHandler.prefixChar}help`` to view commands.", false);
+                        var channel = (guild?.GetChannel(guild.DefaultChannelId)) as SocketTextChannel;
+                        var msg = channel?.GetMessagesAsync(1);
+                        if ((msg as IUserMessage)?.Author.Id != client.CurrentUser.Id)
+                            await channel?.SendMessageAsync($"Hey there, I am the guide! :wave: I am here to be useful. I am made by gorateron, use ``{CommandHandler.prefixChar}help`` to view commands.", false);
                 }
             },
             null,
