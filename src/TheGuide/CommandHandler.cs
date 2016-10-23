@@ -35,8 +35,8 @@ namespace TheGuide
         {
             var message = parameterMessage as SocketUserMessage;
             int argPos = 0;
-
-            if (message == null || (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
+            var cleanmsg = new string(message.Content.ToCharArray().Where(x => !Char.IsWhiteSpace(x)).ToArray());
+            if (message == null || cleanmsg.Length <= 1 || (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
                 return;
 
             var cooldownTime = cooldowns.FirstOrDefault(x => x.Key == message.Author.Id);
@@ -73,15 +73,18 @@ namespace TheGuide
 
         public static string[] SplitOpt(string opt)
         {
-            int index = opt.ToString().IndexOf('-');
-            if (index != -1)
-            {
-                string optContent = opt.ToString().Substring(index);
-                string[] optMsg = opt.ToString().Split('-');
-                optMsg = optMsg.Where(x => !string.IsNullOrEmpty(x)).ToArray();
-                return optMsg;
-            }
-            return new string[0];
+            //int index = opt.ToString().IndexOf('-');
+            //if (index != -1)
+            //{
+            //    string optContent = opt.ToString().Substring(index);
+            //    string[] optMsg = opt.ToString().Split('-');
+            //    optMsg = optMsg.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+            //    return optMsg;
+            //}
+            //return new string[0];
+            string[] opts = opt.Split('-');
+            opts = opts.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+            return opts;
         }
     }
 }

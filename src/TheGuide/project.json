@@ -5,13 +5,13 @@
   },
 
   "dependencies": {
+    "Discord.Net": "1.0.0-*",
     "Microsoft.NETCore.App": {
       "type": "platform",
       "version": "1.0.1"
     },
-    "Discord.Net": "1.0.0-beta2-00448",
-    "System.Net.WebSockets.Client": "4.0.1-*",
-    "System.Drawing-dotnet-core": "*"
+    //"System.Drawing-dotnet-core": "*",
+    "System.Net.WebSockets.Client": "4.0.1-*"
   },
 
   "frameworks": {

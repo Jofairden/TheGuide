@@ -47,15 +47,21 @@ namespace TheGuide
                 {
                     try
                     {
-                        Context.Client.Dispose();
-                        Process.GetCurrentProcess().Kill();
-                        await Context.Client.DisconnectAsync();
-                        Process.GetCurrentProcess().WaitForExit();
+                        // issue: do not use yet
+                        await Task.Yield();
+                        var client = (Context.Client as DiscordSocketClient);
+                        await client?.DisconnectAsync();
+                        await client?.LogoutAsync();
                         break;
                     }
                     catch
                     {
                         await Task.Delay(5000);
+                    }
+                    finally
+                    {
+                        Context.Client.Dispose();
+                        Process.GetCurrentProcess().Kill();
                     }
                 }
             }
@@ -108,7 +114,6 @@ namespace TheGuide
             }
             if (total.Length > 2)
                 total = total.Substring(2);
-            //var channel = await Context.User?.CreateDMChannelAsync();
             await QuickSend(Context, 
                 $"**Usable commands for {Context.User.Username}**\n" +
                 $"{total}\n\n" +
@@ -153,8 +158,8 @@ namespace TheGuide
         [Alias("quicklink", "ql", "link")]
         public async Task links([Remainder] string opt = null)
         {
-            var updateschannel = await Context.Guild.GetTextChannelAsync(103130530886725632) as SocketTextChannel;
-            var faqchannel = await Context.Guild.GetTextChannelAsync(103128668422832128) as SocketTextChannel;
+            var updateschannel = await Context.Guild.GetTextChannelAsync(103130530886725632);
+            var faqchannel = await Context.Guild.GetTextChannelAsync(103128668422832128);
             await QuickSend(Context,
                 $"**tML thead**: <http://forums.terraria.org/index.php?threads/1-3-tmodloader-a-modding-api.23726/>\n" +
                 $"**tML github**: <https://github.com/bluemagic123/tModLoader/>\n" +
