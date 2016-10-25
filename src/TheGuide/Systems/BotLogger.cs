@@ -10,22 +10,22 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TheGuide
+namespace TheGuide.Systems
 {
     public class BotLogger
     {
         private static string rootDir;
         //                       name           path              date     path
-        internal static Dictionary<string, Tuple<string, Dictionary<string, string>>> _paths;
+        internal static Dictionary<string, Tuple<string, Dictionary<string, string>>> paths;
         //                                      path to folder             path to date folder
         // ie: logs/console/23-10-2016
 
-        private static string[] lognames = new string[]
+        private static string[] logtypeNames = new string[]
         {
             "console.log", "exception.log", "writer_exception.log", "moderation.log", "server.log"
         };
 
-        private static string[] names = new string[]
+        private static string[] typeNames = new string[]
         {
             "logs", "console", "modbot"
         };
@@ -46,16 +46,29 @@ namespace TheGuide
             server
         }
 
+        private class DateHelper
+        {
+            public static string GetLogDate()
+            {
+                return DateTime.Now.ToUniversalTime().ToString() + " UCT";
+            }
+
+            public static string GetDate()
+            {
+                return DateTime.Now.ToString("dd-MM-yyyy");
+            }
+        }
+
         private class NameHelper
         {
             public static string GetName(Type type)
             {
-                return names[(int)type];
+                return typeNames[(int)type];
             }
 
             public static string GetLogName(Log type)
             {
-                return lognames[(int)type];
+                return logtypeNames[(int)type];
             }
         }
 
@@ -63,24 +76,24 @@ namespace TheGuide
         {
             public static string GetRootPath(string type)
             {
-                return _paths[type].Item1;
+                return paths[type].Item1;
             }
 
             public static Dictionary<string, string> GetDict(string type)
             {
-                return _paths[type].Item2;
+                return paths[type].Item2;
             }
 
             public static void QuickAdd(string type)
             {
-                var log_type = NameHelper.GetName(Type.logs);
-                var path = type == log_type ? Path.Combine(rootDir, log_type) : Path.Combine(rootDir, log_type, type);
-                _paths.Add(type, new Tuple<string, Dictionary<string, string>>(path, new Dictionary<string, string>()));
+                string logType = NameHelper.GetName(Type.logs);
+                string path = type == logType ? Path.Combine(rootDir, logType) : Path.Combine(rootDir, logType, type);
+                paths.Add(type, new Tuple<string, Dictionary<string, string>>(path, new Dictionary<string, string>()));
             }
 
             public static void AddDate(string type, string date)
             {
-                _paths[type].Item2.Add(date, Path.Combine(_paths[type].Item1, date));
+                paths[type].Item2.Add(date, Path.Combine(paths[type].Item1, date));
             }
         }
 
@@ -90,9 +103,9 @@ namespace TheGuide
         public BotLogger(string _rootDir)
         {
             rootDir = _rootDir;
-            _paths = new Dictionary<string, Tuple<string, Dictionary<string, string>>>();
+            paths = new Dictionary<string, Tuple<string, Dictionary<string, string>>>();
 
-            foreach (var item in names)
+            foreach (var item in typeNames)
             {
                 PathHelper.QuickAdd(item);
             }
@@ -103,18 +116,13 @@ namespace TheGuide
 
         private string AssembleLine(string message)
         {
-            return string.Concat($"[{DateTime.Now.ToUniversalTime()} UCT] ~ $ ", $"[{message}]");
-        }
-
-        private string GetDateFormat()
-        {
-            return DateTime.Now.ToString("dd-MM-yyyy");
+            return $"[{DateHelper.GetLogDate()} ~ $ [{message}]";
         }
 
         public async Task DynamicLog(Type type, object message, Log log)
         {
             var log_type = NameHelper.GetName(type);
-            string msg = "";
+            string msg;
             switch (log)
             {
                 case Log.exception:
@@ -125,22 +133,24 @@ namespace TheGuide
                     msg = (message as string)?.ToString();
                     break;
             }
-            await DynamicDictLog(PathHelper.GetDict(log_type), msg, NameHelper.GetLogName(log));
+            if (msg.Where(x => !Char.IsWhiteSpace(x)).ToString().Length > 0)
+                await _log(PathHelper.GetDict(log_type), msg, NameHelper.GetLogName(log));
         }
 
-        private async Task DynamicDictLog(Dictionary<string, string> dict, string message, string fileName)
+        private async Task _log(Dictionary<string, string> dict, string message, string fileName)
         {
             await Task.Yield();
             string dateValue;
-            if (dict.TryGetValue(GetDateFormat(), out dateValue))
+            if (dict.TryGetValue(DateHelper.GetDate(), out dateValue))
             {
                 string path = Path.Combine(PathHelper.GetRootPath(NameHelper.GetName(Type.logs)), dateValue);
                 path = Path.Combine(path, fileName);
-                await _DynamicLog(path, AssembleLine(message));
+                await _doLog(path, AssembleLine(message));
             }
         }
 
-        private async Task _DynamicLog(string path, string message)
+        // should be merged into _log
+        private async Task _doLog(string path, string message)
         {
             try
             {
@@ -163,7 +173,7 @@ namespace TheGuide
         {
             try
             {
-                string dateFormat = GetDateFormat();
+                string date = DateHelper.GetDate();
 
                 var values = Enum.GetValues(typeof(Type)).Cast<Type>();
                 foreach (var item in values)
@@ -172,8 +182,8 @@ namespace TheGuide
                     var info = Directory.CreateDirectory(PathHelper.GetRootPath(name));
                     if (name != NameHelper.GetName(Type.logs))
                     {
-                        info.CreateSubdirectory(dateFormat);
-                        PathHelper.AddDate(name, dateFormat);
+                        info.CreateSubdirectory(date);
+                        PathHelper.AddDate(name, date);
                     }
                 }
                 hasAssembled = true;
