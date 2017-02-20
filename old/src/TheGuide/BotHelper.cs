@@ -10,14 +10,14 @@ namespace TheGuide
     public class BotHelper
     {
         private DiscordSocketClient _client;
-        internal ChannelHelper _channelHelper;
-        internal LoggerHelper _loggerHelper;
+        internal ChannelHelper ChannelHelper;
+        internal LoggerHelper LoggerHelper;
 
         public BotHelper(DiscordSocketClient client)
         {
             _client = client;
-            _channelHelper = new ChannelHelper(_client);
-            _loggerHelper = new LoggerHelper(_client);
+            ChannelHelper = new ChannelHelper(_client);
+            LoggerHelper = new LoggerHelper(_client);
         }
     }
 

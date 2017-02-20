@@ -20,12 +20,12 @@ namespace TheGuide.Systems
         //                                      path to folder             path to date folder
         // ie: logs/console/23-10-2016
 
-        private static string[] logtypeNames = new string[]
+        private static readonly string[] logtypeNames = new string[]
         {
             "console.log", "exception.log", "writer_exception.log", "moderation.log", "server.log"
         };
 
-        private static string[] typeNames = new string[]
+        private static readonly string[] typeNames = new string[]
         {
             "logs", "console", "modbot"
         };
@@ -46,11 +46,11 @@ namespace TheGuide.Systems
             server
         }
 
-        private class DateHelper
+        private static class DateHelper
         {
             public static string GetLogDate()
             {
-                return DateTime.Now.ToUniversalTime().ToString() + " UCT";
+                return DateTime.Now.ToUniversalTime() + " UCT";
             }
 
             public static string GetDate()
@@ -59,7 +59,7 @@ namespace TheGuide.Systems
             }
         }
 
-        private class NameHelper
+        private static class NameHelper
         {
             public static string GetName(Type type)
             {
@@ -72,7 +72,7 @@ namespace TheGuide.Systems
             }
         }
 
-        private class PathHelper
+		private static class PathHelper
         {
             public static string GetRootPath(string type)
             {
@@ -133,7 +133,7 @@ namespace TheGuide.Systems
                     msg = (message as string)?.ToString();
                     break;
             }
-            if (msg.Where(x => !Char.IsWhiteSpace(x)).ToString().Length > 0)
+            if (msg.Where(x => !char.IsWhiteSpace(x)).ToString().Length > 0)
                 await _log(PathHelper.GetDict(log_type), msg, NameHelper.GetLogName(log));
         }
 

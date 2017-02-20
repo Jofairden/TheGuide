@@ -5,7 +5,7 @@
   },
 
   "dependencies": {
-    "Discord.Net": "1.0.0-*",
+    "Discord.Net": "1.0.0-rc-00595",
     "Microsoft.NETCore.App": {
       "type": "platform",
       "version": "1.0.1"

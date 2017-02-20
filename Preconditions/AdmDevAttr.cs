@@ -10,14 +10,14 @@ namespace TheGuide.Preconditions
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class AdmDevAttr : PreconditionAttribute
     {
-        public override Task<PreconditionResult> CheckPermissions(CommandContext context, CommandInfo command, IDependencyMap map)
-        {
-            return Task.FromResult
-                (CheckResult(context, command, map)
-                ? PreconditionResult.FromSuccess() : PreconditionResult.FromError("User does not have the admin or developer role"));
-        }
+		public override Task<PreconditionResult> CheckPermissions(ICommandContext context, CommandInfo command, IDependencyMap map)
+		{
+			return Task.FromResult
+				(CheckResult(context as CommandContext, command, map)
+				? PreconditionResult.FromSuccess() : PreconditionResult.FromError("User does not have the admin or developer role"));
+		}
 
-        private bool CheckResult(CommandContext context, CommandInfo command, IDependencyMap map)
+		private bool CheckResult(CommandContext context, CommandInfo command, IDependencyMap map)
         {
             var roles = context.Guild.Roles.Where(x => new string[] { "DEVELOPER", "ADMINISTRATOR" }.Contains(x.Name.ToUpper())).Select(x => x.Id);
             if (roles.Count() > 1)

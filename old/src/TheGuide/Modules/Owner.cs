@@ -26,6 +26,7 @@ namespace TheGuide.Modules
         public async Task disconnect([Remainder] string opt = null)
         {
             // issue: do not use yet
+            Context.Client.Dispose();
             await Context.Client.DisconnectAsync().ConfigureAwait(false);
             await (Context.Client as DiscordSocketClient).LogoutAsync().ConfigureAwait(false);
             await Task.Delay(1500).ConfigureAwait(false);

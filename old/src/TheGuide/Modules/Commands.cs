@@ -2,8 +2,13 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using TheGuide.Preconditions;
 
@@ -72,14 +77,14 @@ namespace TheGuide.Modules
             string total = "";
             if (rem != null)
             {
-                if (rem.Any(x => char.IsWhiteSpace(x)))
+                if (rem.Any(char.IsWhiteSpace))
                 {
                     var split = rem.Split(' ');
                     if (split.Any())
                     {
                         var module = split[0];
                         var command = split[1];
-                        var cmd = service.Commands.FirstOrDefault(x => x.Module.Prefix.ToUpper() == module.ToUpper() && x.Name.ToUpper() == command.ToUpper());
+                        var cmd = service.Commands.FirstOrDefault(x => x.Module.Aliases.First().ToUpper() == module.ToUpper() && x.Name.ToUpper() == command.ToUpper());
                         if (cmd != null)
                         {
                             string summ = cmd.Summary.Length > 0 ? cmd.Summary : "no summary";
@@ -91,27 +96,27 @@ namespace TheGuide.Modules
                         return;
                     }
                 }
-                var cmds = service.Commands.Where(x => x.Module.Prefix.ToUpper() == rem.ToUpper());
+                var cmds = service.Commands.Where(x => x.Module.Aliases.First().ToUpper() == rem.ToUpper());
                 if (cmds.Any())
                 {
                     foreach (var command in cmds)
                     {
-                        var result = await command.CheckPreconditions(Context, map);
+                        var result = await command.CheckPreconditionsAsync(Context, map);
                         if (result.IsSuccess)
-                            total = String.Join(", ", total, command.Name);
+                            total += command.Name + ", ";
                     }
                     if (total.Length > 2)
-                        total = total.Substring(2);
+                        total = total.TruncateString(total.Length - 2);
                     await ReplyAsync($"**Usable commands for {Context.User.Username}**\n" +
                         $"**{rem}**: {total}");
                 }
                 else
                 {
                     var cmd = service.Commands.FirstOrDefault(x => x.Name.ToUpper() == rem.ToUpper());
-                    if (cmd != null && cmd.Module.Prefix == "")
+                    if (cmd != null && cmd.Module.Aliases.First() == "")
                     {
-                        await ReplyAsync($"**Command info for ``{cmd.Name}``**\n" +
-                            $"{cmd.Text} (module: {cmd.Module}): {cmd.Summary}");
+                            await ReplyAsync($"**Command info for ``{cmd.Name}``**\n" +
+                            $"{cmd.Aliases.First()} (module: {cmd.Module}): {cmd.Summary}");
                     }
                     else
                     {
@@ -122,25 +127,28 @@ namespace TheGuide.Modules
             }
             foreach (var command in service.Commands)
             {
-                if (command.Module.Prefix == "")
+                if (command.Module.Aliases.First() == "")
                 {
-                    var result = await command.CheckPreconditions(Context, map);
+                    var result = await command.CheckPreconditionsAsync(Context, map);
                     if (result.IsSuccess)
                         total += command.Name + ", ";
                 }
             }
-            total = Tools.TruncateString(total, total.Length - 2);
+            if (total.Length > 2)
+                total = total.TruncateString(total.Length - 2);
             string modules = "";
             foreach (var module in service.Modules)
             {
-                if (!new string[] { "COMMANDS", "OWNER" }.Any(x => x == module.Name.ToUpper()) && module.Commands.Any())
+                if (new string[] {"COMMANDS", "OWNER"}.All(x => x != module.Name.ToUpper()) && module.Commands.Any())
                 {
                     modules += $"\n_{module.Name}_: ";
                     foreach (var command in module.Commands)
                     {
-                        modules += $"{command.Name}, ";
+                        var result = await command.CheckPreconditionsAsync(Context, map);
+                        if (result.IsSuccess)
+                            modules += $"{command.Name}, ";
                     }
-                    modules = Tools.TruncateString(modules, modules.Length - 2);
+                    modules = modules.TruncateString(modules.Length - 2);
                 }
             }
 
@@ -153,7 +161,7 @@ namespace TheGuide.Modules
         [Command("info")]
         [Alias("about")]
         [Summary("Shows elaborate bot info")]
-        [RequireContext(ContextType.DM)]
+        //[RequireContext(ContextType.DM)]
         public async Task info([Remainder] string rem = null)
         {
             var application = await Context.Client.GetApplicationInfoAsync();
@@ -169,21 +177,19 @@ namespace TheGuide.Modules
                 $"- Heap Size: {Tools.GetHeapSize()} MB\n" +
                 $"- Guilds: {client?.Guilds.Count}\n" +
                 $"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)}\n" +
-                $"- Users: {client?.Guilds.Sum(g => g.Users.Count)}"
+                $"- Users: {client?.Guilds.Sum(g => g.MemberCount)}"
             );
         }
 
-        [Command("github")]
-        [Alias("sourcecode", "source", "gh")]
+        [Command("src")]
         [Summary("Shows a link to the code of this bot")]
-        public async Task github([Remainder] string rem = null)
+        public async Task src([Remainder] string rem = null)
         {
             await ReplyAsync(
                 $"Here's how I am made! <https://github.com/gorateron/theguide-discord>");
         }
 
         [Command("links")]
-        [Alias("quicklink", "ql")]
         [Summary("Shows easy tml links")]
         public async Task links([Remainder] string rem = null)
         {
@@ -194,7 +200,108 @@ namespace TheGuide.Modules
                 $"**tML github**: <https://github.com/bluemagic123/tModLoader/>\n" +
                 $"**tML releases**: <https://github.com/bluemagic123/tModLoader/releases>\n" +
                 $"**tML updates**: " + (updateschannel != null ? updateschannel.Mention : "#tmodloader-updates") + "\n" +
-                $"**FAQ**: " + (faqchannel != null ? faqchannel.Mention : "#faq"));
+				$"**FAQ**: " + (faqchannel != null ? faqchannel.Mention : "#faq"));
         }
-    }
+
+		// sorry im evil
+		private const string queryUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
+		private const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
+		[Command("widget")]
+		[Alias("widgetimg", "widgetimage")]
+		[Summary("Generates a widget image of specified mod")]
+		public async Task widgetimage([Remainder] string mod = "")
+		{
+			var request = WebRequest.Create($"{queryUrl}{mod}");
+			request.Proxy = null;
+			using (var response = await request.GetResponseAsync())
+			using (var reader = new StreamReader(response.GetResponseStream()))
+			{
+				string readString = await reader.ReadToEndAsync();
+				if (readString.StartsWith("Failed"))
+				{
+					await ReplyAsync("Mod with that name doesn\'t exist");
+					return;
+				}
+				using (var widgetresponse = await WebRequest.Create($"{widgetUrl}{mod}.png").GetResponseAsync())
+				using (var widgetstream = widgetresponse.GetResponseStream())
+				{
+					var sendFileAsync = Context.Channel?.SendFileAsync(widgetstream, $"{mod}.png", $"Widget for {mod}");
+					if (sendFileAsync != null)
+						await sendFileAsync;
+				}
+			}
+		}
+
+		[Command("github")]
+	    [Alias("gh")]
+	    [Summary("Searches on github")]
+	    public async Task github([Remainder] string rem = "")
+	    {
+			await ReplyAsync($"Uri: https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories");
+	    }
+
+		//[Command("mod")]
+
+		//[Command("encode")]
+		//[Summary("Encodes a string with row transposition")]
+		//public async Task encode(string keyword, [Remainder] string message)
+		//{
+		//    try
+		//    {
+		//        int num_columns = keyword.Length;
+		//        int num_rows = (int)Math.Ceiling((double)message.Length / (double)num_columns);
+		//        var keys = keyword.MakeKeys(num_columns);
+		//        var input = new char[num_rows, num_columns];
+		//        int cur_column = 0;
+		//        int cur_row = 0;
+
+		//        await ReplyAsync($"keys: {string.Join("", keys)}");
+
+		//        foreach (var character in message)
+		//        {
+		//            char input_char = character;
+		//            if (char.IsWhiteSpace(input_char) || input_char == ' ' || input_char == '\t' || input_char == '\n')
+		//                input_char = ' ';
+		//            input[cur_row, cur_column] = input_char;
+		//            if (cur_column == (num_columns - 1))
+		//            {
+		//                cur_column = 0;
+		//                cur_row += 1;
+		//            }
+		//            else cur_column += 1;
+		//        }
+
+		//        var sb = new StringBuilder();
+
+		//        foreach (var key in keys)
+		//        {
+		//            for (int i = 0; i < input.GetLength(0); i++)
+		//            {
+		//                var element = input[i, key];
+		//                sb.Append(element);
+		//            }
+		//        }
+
+		//        await ReplyAsync($"encoded message: ``{sb.ToString()}``");
+		//    }
+		//    catch (Exception e)
+		//    {
+		//        await ReplyAsync(e.ToString());
+		//    }
+		//}
+
+		//[Command("decode")]
+		//[Summary("A row transposition")]
+		//public async Task decode(string keyword, [Remainder] string message)
+		//{
+		//    try
+		//    {
+
+		//    }
+		//    catch (Exception e)
+		//    {
+		//        await ReplyAsync(e.ToString());
+		//    }
+		//}
+	}
 }

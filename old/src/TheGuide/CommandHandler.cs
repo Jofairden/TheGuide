@@ -28,14 +28,13 @@ namespace TheGuide
 
             map = _map;
 
-            await service.AddModules(Assembly.GetEntryAssembly()).ConfigureAwait(false);
+	        await service.AddModulesAsync(Assembly.GetEntryAssembly()).ConfigureAwait(false);
 
             client.MessageReceived += HandleCommand;
         }
 
         public async Task HandleCommand(SocketMessage parameterMessage)
         {
-
             var message = parameterMessage as SocketUserMessage;
             var context = new CommandContext(client, message);
 
@@ -44,9 +43,11 @@ namespace TheGuide
 
             int argPos = 0;
 
-            var cleanmsg = new string(message.Content.Where(x => !char.IsWhiteSpace(x)).ToArray());
-            if (message == null || cleanmsg.Length <= 1 || (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
-                return;
+            if (message == null 
+				|| !message.Content.Except("?").Any()   
+				|| message.Content.Trim().Length <= 1
+				|| (!(message.HasMentionPrefix(client.CurrentUser, ref argPos) || message.HasCharPrefix(prefixChar, ref argPos))))
+				return;
 
             var cooldownTime = cooldowns.FirstOrDefault(x => x.Key == message.Author.Id);
             if (cooldownTime.Key != default(ulong))
@@ -60,23 +61,35 @@ namespace TheGuide
                     cooldowns.Remove(cooldownTime.Key);
             }
 
-            var result = await service.Execute(context, argPos, map);
+            var result = await service.ExecuteAsync(context, argPos, map);
 
+			// Command didn't work
             if (!result.IsSuccess)
             {
-                //var channel = await context.User?.CreateDMChannelAsync();
-                await context.Channel.SendMessageAsync($"**Error** (on command <{message.Content}>): {result.ToString()}");
+				//var channel = await context.User?.CreateDMChannelAsync();
+
+				// Attempt to find a tag with this name
+				var result2 = await service.ExecuteAsync(context, $"tag get [blankAttempt]:{message.Content.Substring(1)}", map);
+	            if ((result2 as ExecuteResult?)?.Exception != null)
+		            await context.Channel.SendMessageAsync($"**Warning** ``{message.Content}``\n{result}");
+	            else AddCooldown(message);
             }
             else
             {
-                cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(cooldownDelay));
-                string[] opt = SplitOpt(message.ToString());
-                if (opt.Any(x => x[0] == 'd'))
-                {
-                    await message?.DeleteAsync();
-                }
+				await context.Channel.SendMessageAsync($"**Warning** ``{message.Content}``\n{result}");
+				AddCooldown(message);
             }
         }
+
+	    private async void AddCooldown(SocketUserMessage message)
+	    {
+			cooldowns.Add(message.Author.Id, DateTime.Now.AddMilliseconds(cooldownDelay));
+			string[] opt = SplitOpt(message.ToString());
+			if (opt.Any(x => x[0] == 'd'))
+			{
+				await message?.DeleteAsync();
+			}
+		}
 
         public static string[] SplitOpt(string opt)
         {
