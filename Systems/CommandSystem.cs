@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace TheGuide
+namespace TheGuide.Systems
 {
-	public class TagJson
-	{
-		public string Name;
-		public string Output;
-	}
+    public static class CommandSystem
+    {
+
+    }
 }

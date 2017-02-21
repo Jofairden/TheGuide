@@ -1,6 +1,4 @@
-using System;
-
-namespace Terraria.ID
+namespace TheGuide.ID
 {
 	public class ItemID
 	{

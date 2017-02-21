@@ -7,34 +7,43 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 
 namespace TheGuide
 {
-    public static class Tools
-    {
+	public static class Tools
+	{
 		public static Random Rand = new Random();
 
-		public static string GetUptime() => 
+		public static string GenFullName(string username, string discriminator) =>
+			$"{username}#{discriminator}";
+
+		public static string GenFullName(string username, ulong discriminator) =>
+			$"{username}#{discriminator}";
+
+		public static string GenFullName(this IUser user) =>
+			GenFullName(user.Username, user.Discriminator);
+
+		public static string GetUptime() =>
 			(DateTime.Now - Process.GetCurrentProcess().StartTime).ToString(@"dd\.hh\:mm\:ss");
 
-		public static string GetHeapSize() => 
+		public static string GetHeapSize() =>
 			Math.Round(GC.GetTotalMemory(true) / (1024.0d * 1024.0d), 2).ToString(CultureInfo.InvariantCulture);
 
-		public static string Truncate(this string value, int length) => 
+		public static string Truncate(this string value, int length) =>
 			value?.Substring(0, Math.Min(value.Length, value.Length - length));
 
-		public static string PrintRoles(this IEnumerable<SocketRole> roles) => 
+		public static string PrintRoles(this IEnumerable<SocketRole> roles) =>
 			roles.ToList().Select(r => r.Name).PrettyPrint();
 
-	    public static string PrettyPrint(this IEnumerable<string> list)
-	    {
-			var sb = new StringBuilder();
-		    list.ToList().ForEach(s => sb.Append($"``{s}``, "));
-			return $"{sb.ToString().Truncate(2)}";
-		}
+		public static string PrettyPrint(this IEnumerable<string> list) =>
+			string.Join(", ", list.Select(v => $"``{v}``"));
 
-		public static string Cap(this string value, int length) => 
+		public static string SurroundWith(this string text, string surrounder) =>
+			$"{surrounder}{text}{surrounder}";
+
+		public static string Cap(this string value, int length) =>
 			value?.Substring(0, Math.Abs(Math.Min(value.Length, length)));
 
 		public static bool Contains(this string source, string toCheck, StringComparison comp) =>
@@ -45,8 +54,8 @@ namespace TheGuide
 				.Where(c => !char.IsWhiteSpace(c))
 				.ToArray());
 
-	    public static string ReplaceWhitespace(this string input, string replacement) =>
-		    input.Replace(" ", replacement);
+		public static string ReplaceWhitespace(this string input, string replacement) =>
+			input.Replace(" ", replacement);
 
 		public static List<T> GetAllPublicConstantValues<T>(this Type type) =>
 			type
@@ -72,5 +81,8 @@ namespace TheGuide
 
 		public static string AddSpacesToSentence(this string text) =>
 			string.Concat(text.Select(x => char.IsUpper(x) ? $" {x}" : x.ToString())).TrimStart(' ');
+
+		public static string Uncapitalize(this string text, int index = 0) =>
+			new string(text.Select((c, i) => (i == index) ? c : char.ToLower(c)).ToArray());
 	}
 }

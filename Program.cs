@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Terraria.ID;
+using TheGuide.ID;
+using TheGuide.Systems;
+// Just using this to show off it's possible, and how to.
 using stringShortDict = System.Collections.Generic.Dictionary<string, short>;
 using stringIntDict = System.Collections.Generic.Dictionary<string, int>;
 
@@ -39,41 +41,29 @@ namespace TheGuide
 	// press F9 ('Kill')
 	// press Enter
 	public class Program
-    {
-        public static void Main(string[] args) => new Program().Start().GetAwaiter().GetResult();
+	{
+		public static void Main(string[] args) => new Program().Start().GetAwaiter().GetResult();
 
-		// Settings
-		public const bool maintenanceMode = false;
+		// Variables
+		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-	    public const string username = "The Guide";
-		public const string discriminator = "9802";
-		public const string version = "r-2.0";
-		public static string fullname = $"{username}#{discriminator}";
+		public const string version = "r-3.0";
 
-		// Cache, lol
-	    public static stringShortDict itemConsts;
-	    public static stringShortDict dustConsts;
-	    public static stringShortDict chainConsts;
-	    public static stringIntDict ammoConsts;
-	    public static stringIntDict buffConsts;
+		// Cache
+		public static stringShortDict itemConsts;
+		public static stringShortDict dustConsts;
+		public static stringShortDict chainConsts;
+		public static stringIntDict ammoConsts;
+		public static stringIntDict buffConsts;
 
 		// Variables 
-		private Dictionary<ulong, DateTime> cooldowns = new Dictionary<ulong, DateTime>();
+		private readonly Dictionary<ulong, DateTime> cooldowns = new Dictionary<ulong, DateTime>();
 		private string oath2Url = "https://discordapp.com/api/oauth2/authorize";
 		private DiscordSocketClient client;
 		private CommandHandler handler;
-		public static DateTime time { get; set; } = DateTime.Now;
-		public static string AssemblyDirectory
-		{
-			get
-			{
-				string codeBase = Assembly.GetEntryAssembly().CodeBase;
-				UriBuilder uri = new UriBuilder(codeBase);
-				string path = Uri.UnescapeDataString(uri.Path);
-				return Path.GetDirectoryName(path);
-			}
-		}
+		private DateTime time { get; set; } = DateTime.Now;
+		public static string AssemblyDirectory => Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetEntryAssembly().CodeBase).Path));
 
 		// Start of App
 		public async Task Start()
@@ -119,8 +109,8 @@ namespace TheGuide
 			map.Add(cooldowns);
 
 			// json Maintainer
-			await JsonHandler.Setup(client);
-			var timer = new Timer(async s => await JsonHandler.MaintainContent(client),
+			await JsonSystem.Setup(client);
+			var timer = new Timer(async s => await JsonSystem.MaintainContent(client),
 			null,
 			TimeSpan.FromMinutes(5),
 			TimeSpan.FromDays(0.5d));
@@ -129,12 +119,14 @@ namespace TheGuide
 			handler = new CommandHandler();
 			await handler.Install(map);
 
+			await client.SetGameAsync("Terraria");
+
 			await Task.Delay(-1);
 		}
 
 		private async Task Client_JoinedGuild(SocketGuild arg)
 		{
-			await JsonHandler.CreateTagDir(arg.Id);
+			await JsonSystem.CreateTagDir(arg.Id);
 		}
 
 		private async Task Client_Log(LogMessage e)
@@ -147,12 +139,12 @@ namespace TheGuide
 			if (client == null) return;
 
 			await client.SetStatusAsync(
-				maintenanceMode ? UserStatus.DoNotDisturb :
+				//maintenanceMode ? UserStatus.DoNotDisturb :
 				(client.ConnectionState == ConnectionState.Connecting || j > 250) ? UserStatus.Idle
 				: (client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
 				: UserStatus.Online);
 
-			await client.SetGameAsync(maintenanceMode ? "maintenance" : "Terraria");
+			//await client.SetGameAsync(/*maintenanceMode ? "maintenance" : */"Terraria");
 		}
 	}
 }

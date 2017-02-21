@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <Description>A bot for Discord made by Jofairden</Description>
+    <Copyright>� Dani�l Zondervan 2017</Copyright>
+    <AssemblyTitle>The Guide Discord Bot</AssemblyTitle>
+    <TargetFramework>netcoreapp1.0</TargetFramework>
+    <DebugType>portable</DebugType>
+    <AssemblyName>TheGuide</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>TheGuide</PackageId>
+    <RuntimeFrameworkVersion>1.0.3</RuntimeFrameworkVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>2.0</OldToolsVersion>
+    <ProjectGuid>{11F7A167-FC6A-4FE1-B2B7-16C72209D848}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Discord.Net" Version="1.0.0-*" />
+    <PackageReference Include="HtmlAgilityPack.NetCore" Version="1.5.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="System.Net.WebSockets.Client" Version="4.*" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,9 +8,9 @@ using Discord;
 using Discord.WebSocket;
 using Newtonsoft.Json.Linq;
 
-namespace TheGuide
+namespace TheGuide.Systems
 {
-    public static class JsonHandler
+    public static class JsonSystem
     {
 	    public static JObject modlistData;
 	    public static JArray modlist;

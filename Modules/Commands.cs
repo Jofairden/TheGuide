@@ -12,11 +12,12 @@ using Discord.Commands;
 using Discord.WebSocket;
 using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
-using Terraria.ID;
 using TheGuide;
+using TheGuide.Systems;
 
 namespace TheGuide.Modules
 {
+	[Name("default")]
 	public class Commands : ModuleBase
 	{
 		private CommandService service;
@@ -35,7 +36,7 @@ namespace TheGuide.Modules
 		{
 			await ReplyAsync(
 				$"I am running on ``{Program.version}``\n" +
-				"Use ``?info`` for more elaborate information.");
+				$"Use ``{CommandHandler.prefixChar}info`` for more elaborate information.");
 		}
 
 		[Command("ping")]
@@ -47,101 +48,24 @@ namespace TheGuide.Modules
 			var latency = (Context.Client as DiscordSocketClient)?.Latency;
 			if (latency != null)
 				await ReplyAsync(
-					$"My heartrate is ``{(int) (60d/latency*1000)}`` bpm ({latency} ms)");
+					$"My heartrate is ``{(int)(60d / latency * 1000)}`` bpm ({latency} ms)");
 		}
 
-		//[Command("helpdev")]
-		//[Alias("hd")]
-		//[Summary("Quickly show a message which contains info about asking questions to developers")]
-		//[Remarks("helpdev")]
-		//public async Task Helpdev([Remainder] string rem = null)
-		//{
-		//	var role = Context.Guild.Roles.FirstOrDefault(x => x.Name.ToUpper() == "DEVELOPERS");
-		//	string roleMention = role != null && role.IsMentionable ? role.Mention : "@DEVELOPERS";
-		//	await ReplyAsync(
-		//		$"**Regarding asking questions to Terraria developers**\n" +
-		//		$"Asking {roleMention} about vanilla stuff (as in: questions/suggestions/asking about future stuff etc.): They **WILL NOT** respond, and please **DO NOT** even try starting a discussion. Thank you.");
-		//}
-
-		//[Command("helpcode")]
-		//[Alias("hc")]
-		//[Summary("Quickly show a message which contains info for the help chat")]
-		//[Remarks("helpcode")]
-		//public async Task Helpcode([Remainder] string rem = null)
-		//{
-		//	var channel = (Context.Guild as SocketGuild)?.Channels.FirstOrDefault(x => x.Name.ToUpper() == "HELP");
-		//	string channelMention = channel != null ? (channel as SocketTextChannel)?.Mention : "#help";
-		//	await ReplyAsync(
-		//		$"**When you require assistance**\n" +
-		//		$"Please go to {channelMention}, provide error logs (especially a **strack trace**) _along with your code_ posted on hastebin. Thank you.");
-		//}
-
 		[Command("changelog")]
-		[Summary("Sends a changelog via DM")]
+		[Summary("Sends a changelog via a DM")]
 		[Remarks("changelog")]
 		public async Task Changelog([Remainder] string rem = null)
 		{
 			var ch = await Context.Message.Author.CreateDMChannelAsync();
-			await ch.SendMessageAsync($"{Format.Bold($"Update logs for {Program.version} (from r1.*)")}\n\n" +
-			                          $"```New commands```\n" +
-			                          $"whois\n" +
-			                          $"widget\n" +
-			                          $"github\n" +
-			                          $"itemid, dustid, chainid, ammoid, buffid\n" +
-			                          $"mod\n" +
-			                          $"tag alter\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("whois command")}\n" +
-			                          $"Look up any user I can find in the guilds I'm connected to!\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("widget command")}\n" +
-			                          $"Generate any mod widget!\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("github command")}\n" +
-			                          $"Search on github for repositories with any predicate!\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("*id commands")}\n" +
-			                          $"Look up any constant ID (name OR value)\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("mod command")}\n" +
-			                          $"Get a lot of mod info!\n" +
-			                          $"\n" +
-			                          $"{Format.Bold("tag alter")}\n" +
-			                          $"Only available for mods. Can now change existing tags\n" +
-			                          $"\n" +
-			                          $"{Format.Bold(Format.Underline("Tags are now found automatically!"))}\n" +
-			                          $"Any tags which do not share a name with any existing command will be found automatically!\n" +
-			                          $"This means for example ``{CommandHandler.prefixChar}tag get SomeTagName`` can also be done as ``{CommandHandler.prefixChar}SomeTagName``\n" +
-			                          $"Try it out!\n" +
-			                          $"\n" +
-			                          $"{Format.Bold(Format.Underline("Tags can now run other commands!"))}\n" +
-			                          $"You can now program tags in such a way that, they will run like another command!\n" +
-			                          $"For example: ``{CommandHandler.prefixChar}tag create MyMod command:widget MyMod``" +
-			                          $" will act as if you called ``{CommandHandler.prefixChar}widget MyMod`` when you call this tag!"
-									  );
-
-			await ch.SendMessageAsync($"```Overhauled code```" +
-			                          $"\n" +
-			                          $"I was rewritten nearly entirely from scratch!\n" +
-			                          $"\n" +
-			                          $"``New version``: {Program.version}\n" +
-			                          $"Expanded the {CommandHandler.prefixChar}info command\n" +
-			                          $"The {CommandHandler.prefixChar}status command now returns my heartrate\n" +
-			                          $"Changed github->src (the old github command is now src or source)\n" +
-			                          $"helpdev and helpcode are no longer internal commands, instead they are now tags. You can call them with hd or hc (aliases)\n" +
-			                          $"-v no longer works to call the status command\n" +
-			                          $"The links command is no longer internal, this also became a tag. You can call it with links." +
-			                          $"\n" +
-			                          $"```Help command expand```\n" +
-			                          $"The help command is now more useful and also shows usage and examples of commands\n" +
-			                          $"\n" +
-			                          $"{Format.Underline($"Remember to use ?help <command> to checkout the new help command expansion!\n" + $"For example: ``?help github``")}\n" +
-			                          $"\n" +
-			                          $"```Tags safeguard```\n" +
-			                          $"Tags calling themselves {Format.Bold(Format.Underline("should not"))} function, please contact my owner if they do.\n" +
-			                          $"**They should** simply return the contents");
-
-			await ReplyAsync($"{Context.Message.Author.Mention}, I sent you my changelog!");
+			var changelog = File.ReadAllText(Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{Program.version}.txt"));
+			if (!string.IsNullOrEmpty(changelog))
+			{
+				await ch.SendMessageAsync(changelog);
+				await Context.Message.AddReactionAsync("👌");
+				await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚");
+				return;
+			}
+			await ReplyAsync($"Could not find changelogs.");
 		}
 
 		[Command("src")]
@@ -163,21 +87,22 @@ namespace TheGuide.Modules
 		{
 			var application = await Context.Client.GetApplicationInfoAsync();
 			var client = (Context.Client as DiscordSocketClient);
-			await ReplyAsync($"{Format.Bold($"Info for {Program.fullname}")}\n" +
-			                 $"- Author: {application.Owner.Username}${application.Owner.Discriminator} (ID {application.Owner.Id})\n" +
-			                 $"- Library: Discord.Net ({DiscordConfig.Version})\n" +
-			                 $"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
-			                 $"- Uptime: {Tools.GetUptime()} (dd\\hh\\mm\\ss)\n" +
-			                 $"- Bot version: {Program.version}\n\n" +
+			await ReplyAsync($"{Format.Bold($"Info for {client?.CurrentUser.GenFullName()}")}\n" +
+							 $"- Author: {Tools.GenFullName(application.Owner.Username, application.Owner.Discriminator)} ({application.Owner.Id})\n" +
+							 $"- Library: Discord.Net ({DiscordConfig.Version})\n" +
+							 $"- API: {DiscordConfig.APIVersion}" +
+							 $"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
+							 $"- Uptime: {Tools.GetUptime()} (dd\\hh\\mm\\ss)\n" +
+							 $"- Bot version: {Program.version}\n\n" +
 
-			                 $"{Format.Bold("Stats")}\n" +
-			                 $"- Heap Size: {Tools.GetHeapSize()} MB\n" +
-			                 $"- Guilds: {client?.Guilds.Count}\n" +
-			                 $"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)} " +
-			                 $"(of which text: {client?.Guilds.Sum(g => g.TextChannels.Count)}, " +
-			                 $"voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)})\n" +
+							 $"{Format.Bold("Stats")}\n" +
+							 $"- Heap Size: {Tools.GetHeapSize()} MB\n" +
+							 $"- Guilds: {client?.Guilds.Count}\n" +
+							 $"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)} " +
+							 $"(of which text: {client?.Guilds.Sum(g => g.TextChannels.Count)}, " +
+							 $"voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)})\n" +
 							 $"- Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
-			                 $"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
+							 $"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
 							 $"- Users: {client?.Guilds.Sum(g => g.MemberCount)} (of which cached: {client?.Guilds.Sum(g => g.Users.Count)})"
 			);
 		}
@@ -186,7 +111,7 @@ namespace TheGuide.Modules
 		[Summary("Whois user lookup")]
 		[Remarks("whois <username/nickname> --OR-- whois role:<rolename>\nwhois the guide --OR-- whois role:admin")]
 		//[RequireContext(ContextType.DM)]
-		public async Task Whois(string username, [Remainder][Summary("the username/nickname or predicate")]string rem = null)
+		public async Task Whois([Remainder][Summary("the user or predicate")]string username)
 		{
 			var client = (Context.Client as DiscordSocketClient);
 			if (username.StartsWith("role:", StringComparison.CurrentCultureIgnoreCase))
@@ -196,13 +121,13 @@ namespace TheGuide.Modules
 				var users =
 					client?.Guilds
 						.AsParallel()
-						.WithDegreeOfParallelism(3)
+						.WithDegreeOfParallelism(2)
 						.Select(g =>
 							g.Users.Where(u =>
 								g.Roles.Any(r =>
 									!r.IsEveryone
-									&& r.Name.ToUpper().Contains(role.ToUpper())
-									&& u.RoleIds.Contains(r.Id))))
+									&& r.Name.Contains(role, StringComparison.CurrentCultureIgnoreCase)
+									&& u.Roles.Any(x => x.Id == r.Id))))
 						.ToList();
 
 				var predicate = $"``{role} in:roles from:user``";
@@ -214,10 +139,10 @@ namespace TheGuide.Modules
 
 					// Print user info
 					for (int i = 0; i < users.Count; i++)
-					{ 
+					{
 						users[i].ToList().ForEach(u =>
 							sb.AppendLine($"{u.Username}#{u.Discriminator} ({client?.Guilds.ElementAtOrDefault(i).Name})\n" +
-							              $"Roles: {(client?.Guilds.ElementAtOrDefault(i).Roles.Where(urole => !urole.IsEveryone && u.RoleIds.Contains(urole.Id))).PrintRoles()}\n"));
+										  $"Roles: {(client?.Guilds.ElementAtOrDefault(i).Roles.Where(urole => !urole.IsEveryone && u.Roles.Any(x => x.Id == urole.Id))).PrintRoles()}\n"));
 					}
 
 					// Prints all roles together
@@ -248,13 +173,13 @@ namespace TheGuide.Modules
 				{
 					var sb = new StringBuilder();
 					sb.AppendLine($"Users found matching {predicate} predicate\n" +
-					              $"Format: displayname (nickname) (guild)\n");
+								  $"Format: displayname (nickname) (guild)\n");
 
 					for (int i = 0; i < users.Count; i++)
 						foreach (var user in users[i])
 							sb.AppendLine($"{(user.Nickname == null ? Format.Bold(user.Username) : user.Username)}#{user.Discriminator}" +
-							              $"{(user.Nickname != null ? $" ({Format.Bold(user.Nickname)})" : "")} " +
-							              $"({client?.Guilds.ElementAt(i).Name})");
+										  $"{(user.Nickname != null ? $" ({Format.Bold(user.Nickname)})" : "")} " +
+										  $"({client?.Guilds.ElementAt(i).Name})");
 
 					await ReplyAsync($"{sb}");
 				}
@@ -262,21 +187,6 @@ namespace TheGuide.Modules
 					await ReplyAsync($"No users found matching {predicate} predicate.");
 			}
 		}
-
-		//[Command("links")]
-		//[Summary("Shows a list of useful links")]
-		//[Remarks("links")]
-		//public async Task Links([Remainder] string rem = null)
-		//{
-		//	var updateschannel = (Context.Guild as SocketGuild)?.Channels.FirstOrDefault(x => x.Name.ToUpper() == "TMODLOADER-UPDATES") as ITextChannel;
-		//	var faqchannel = (Context.Guild as SocketGuild)?.Channels.FirstOrDefault(x => x.Name.ToUpper() == "FAQ") as ITextChannel;
-		//	await ReplyAsync(
-		//		$"**tML thead**: <http://forums.terraria.org/index.php?threads/1-3-tmodloader-a-modding-api.23726/>\n" +
-		//		$"**tML github**: <https://github.com/bluemagic123/tModLoader/>\n" +
-		//		$"**tML releases**: <https://github.com/bluemagic123/tModLoader/releases>\n" +
-		//		$"**tML updates**: " + (updateschannel != null ? updateschannel.Mention : "#tmodloader-updates") + "\n" +
-		//		$"**FAQ**: " + (faqchannel != null ? faqchannel.Mention : "#faq"));
-		//}
 
 		public class UsageAttribute : Attribute
 		{
@@ -288,22 +198,16 @@ namespace TheGuide.Modules
 			public string Text { get; }
 		}
 
-		// sorry im evil, this code sucks
 		private const string queryUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
 		private const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
-		
+
 		[Command("widget")]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]
 		[Remarks("widget <internal modname>\nwidget examplemod")]
-		public async Task Widget([Remainder][Summary("the mod name")]string mod = "")
+		public async Task Widget([Remainder][Summary("the mod name")]string mod)
 		{
-			if (mod.Length <= 0)
-			{
-				await ReplyAsync("You must enter a mod name.");
-				return;
-			}
-			Task<IUserMessage> sendMessageAsync = Context.Channel?.SendMessageAsync($"Please wait while the widget is generated...");
+			var sendMessageAsync = Context.Channel?.SendMessageAsync($"Please wait while the widget is generated...");
 			if (sendMessageAsync != null)
 			{
 				var waitMsg = await sendMessageAsync;
@@ -315,12 +219,12 @@ namespace TheGuide.Modules
 					string readString = await reader.ReadToEndAsync();
 					if (readString.StartsWith("Failed"))
 					{
-						await JsonHandler.MaintainContent(Context.Client);
+						await JsonSystem.MaintainContent(Context.Client);
 
 						var sb = new StringBuilder();
 						sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
 
-						JsonHandler.modnames.Where(n => n.ToUpper().Contains(mod?.ToUpper()))
+						JsonSystem.modnames.Where(n => n.ToUpper().Contains(mod?.ToUpper()))
 							.ToList().ForEach(n => sb.Append($"``{n}``, "));
 
 						if (sb.ToString().EndsWith(Environment.NewLine))
@@ -346,7 +250,7 @@ namespace TheGuide.Modules
 		[Alias("gh")]
 		[Summary("Returns a search link for github matching your predicate")]
 		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
-		public async Task Github([Remainder][Summary("the predicate")]string rem = "")
+		public async Task Github([Remainder][Summary("the predicate")]string rem)
 		{
 			await ReplyAsync($"Uri: https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories");
 		}
@@ -505,29 +409,23 @@ namespace TheGuide.Modules
 		[Alias("modinfo")]
 		[Summary("Shows info about a mod")]
 		[Remarks("mod <internal modname> --OR-- mod <part of name>\nmod examplemod")]
-		public async Task Mod([Remainder][Summary("The mod name or part of it")] string mod = "")
+		public async Task Mod([Remainder][Summary("The mod name or part of it")] string mod)
 		{
-			// Name must have some content
-			if (mod.Length <= 0)
-			{
-				await ReplyAsync("You must enter a mod name.");
-				return;
-			}
 			// Maintain json
-			await JsonHandler.MaintainContent(Context.Client);
+			await JsonSystem.MaintainContent(Context.Client);
 			// Use mod string
 			var usemod = mod.RemoveWhitespace();
 			var sb = new StringBuilder();
 			var usestr = "";
 
 			// If there is no mod found with this name
-			if (!JsonHandler.modnames.Any(m 
+			if (!JsonSystem.modnames.Any(m
 				=> string.Equals(m.ToUpper(), usemod.ToUpper(), StringComparison.CurrentCulture)))
 			{
 				sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
 
 				// Get all mod names which contain the input, then append it to the strinbuilder in ``name``, format
-				JsonHandler.modnames.Where(n => n.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
+				JsonSystem.modnames.Where(n => n.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
 					.ToList().ForEach(n => sb.Append($"``{n}``, "));
 
 				// No mods were found.
@@ -557,7 +455,7 @@ namespace TheGuide.Modules
 			// showcases 2 ways of getting "name", x.Value<string>("name") 
 			// you can also do (x as JObject)?.SelectToken("name") then cast it to string, or use .ToObject<string>()
 			foreach (
-				JObject jToken in JsonHandler.modlist.Where(x =>
+				JObject jToken in JsonSystem.modlist.Where(x =>
 				string.Equals((string)(x as JObject)?.SelectToken("name").ToObject<string>(), usemod, StringComparison.CurrentCultureIgnoreCase)
 				|| x.Value<string>("name").Contains(usemod, StringComparison.CurrentCultureIgnoreCase)))
 			{
@@ -582,7 +480,7 @@ namespace TheGuide.Modules
 				sb.Append($"**Truncated mods**: {truncated.Truncate(2)}");
 
 			// Cap to 2000 chars, max chars for a discord message
-		    usestr = sb.ToString().Cap(2000);
+			usestr = sb.ToString().Cap(2000);
 			// If msg is capped and doesn't end with ``, we truncate past the last comma
 			if (!usestr.EndsWith("``"))
 			{
@@ -599,100 +497,173 @@ namespace TheGuide.Modules
 		[Command("help")]
 		[Alias("guide")]
 		[Summary("Shows info about commands")]
-		[Remarks("help ([module]) [command]\nhelp whois --OR-- help tag create")]
+		[Remarks("help [module] [command]\nhelp whois --OR-- help tag create")]
 		public async Task Help([Remainder] string rem = null)
 		{
-			string total = "";
-			if (rem != null)
+			//Requests all commands
+			var sender = Context.Message.Author as SocketGuildUser;
+			var header = $"{Format.Bold($"Usable commands for {sender?.Username} in {Context.Guild.Name}")}";
+			var commandlist = "No commands found.";
+			var modules = "";
+
+			string sentModule;
+			string sentCommand;
+
+			//Help is called with no arguments, get all commands including other modules
+			if (rem == null)
 			{
-				if (rem.Any(char.IsWhiteSpace))
+				commandlist = "";
+				// Get 'default' or non-module commands
+				//TODO: config: which module is/are 'default'?
+				foreach (var command in service.Commands)
 				{
-					var split = rem.Split(' ');
-					if (split.Any())
-					{
-						var module = split[0];
-						var command = split[1];
-						var cmd = service.Commands.FirstOrDefault(x => x.Module.Aliases.First().ToUpper() == module.ToUpper() && x.Name.ToUpper() == command.ToUpper());
-						if (cmd != null)
-						{
-							string summ = cmd.Summary == null || cmd.Summary.Length > 0 ? cmd.Summary : "No summary";
-							var remarkSplit = cmd.Remarks.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-							var remarks = remarkSplit.Length > 1
-								? $"``{CommandHandler.prefixChar}{remarkSplit[0]}``\n**Example:** ``{CommandHandler.prefixChar}{remarkSplit[1]}``"
-								: $"``{CommandHandler.prefixChar}{cmd.Remarks}``";
-							await ReplyAsync($"**Command info for** ``{module} {command}``\n" +
-								$"**Module**: ``{module}``\n**Command**: ``{command}``\n**Summary**: ``{summ}``\n**Usage**: {remarks}");
-						}
-						else
-							await ReplyAsync($"Command ``{command}`` from module ``{module}`` not found.");
-						return;
-					}
-				}
-				var cmds = service.Commands.Where(x => x.Module.Aliases.First().ToUpper() == rem.ToUpper());
-				if (cmds.Any())
-				{
-					foreach (var command in cmds)
+					var alias = command.Module.Aliases.First();
+					if (string.IsNullOrEmpty(alias) || string.Equals(alias, "default"))
 					{
 						var result = await command.CheckPreconditionsAsync(Context, map);
 						if (result.IsSuccess)
-							total += command.Name + ", ";
+							commandlist += command.Name + ", ";
 					}
-					if (total.Length > 2)
-						total = total.Truncate(2);
-					await ReplyAsync($"**Usable commands for {Context.User.Username}**\n" +
-						$"**{rem}**: {total}");
+				}
+
+				if (string.IsNullOrEmpty(commandlist))
+					commandlist = $"No commands found matching predicate ``filter:commands in:module:default condition:usable``";
+				else if (commandlist.TrimEnd().EndsWith(","))
+					commandlist = commandlist.Truncate(2);
+
+				// Get commands in modules
+				foreach (var module in service.Modules)
+				{
+					var alias = module.Aliases.First();
+					// TODO: config: which modules are included?
+					if (!string.IsNullOrEmpty(alias) && !string.Equals(alias, "default") && module.Commands.Any())
+					{
+						modules += $"\n``{module.Name}``: ";
+						foreach (var command in module.Commands)
+						{
+							var result = await command.CheckPreconditionsAsync(Context, map);
+							if (result.IsSuccess)
+								modules += $"{command.Name}, ";
+						}
+						modules.Truncate(2);
+					}
+				}
+
+				if (string.IsNullOrEmpty(modules))
+					modules = "No results matching predicate ``find:modules in:commandservice``";
+
+				await ReplyAsync($"{header}\n" +
+								 $"{commandlist}\n" +
+								 $"\n**Modules**" +
+								 $"{modules}\n\n" +
+								 $"Get command specific help: ``{CommandHandler.prefixChar}help [module] <name>``");
+			}
+			else
+			{
+				// help is called with arguments
+				CommandInfo currentCommand;
+				if (rem.Any(char.IsWhiteSpace))
+				{
+					// x command from module y
+					//TODO: config: setting for name to hardmatch, or also look for aliases?
+					var args = rem.Split(' ');
+					sentModule = args[0];
+					sentCommand = args[1];
+					currentCommand = service.Modules.FirstOrDefault(m =>
+								string.Equals(m.Aliases.First(), sentModule, StringComparison.CurrentCultureIgnoreCase))?
+						.Commands.FirstOrDefault(
+							c => c.Aliases.Any(a => string.Equals(a, $"{sentModule} {sentCommand}", StringComparison.CurrentCultureIgnoreCase)));
 				}
 				else
 				{
-					var cmd = service.Commands.FirstOrDefault(x => x.Name.ToUpper() == rem.ToUpper());
-					if (cmd != null && cmd.Module.Aliases.First() == "")
-					{
-						string summ = cmd.Summary == null || cmd.Summary.Length > 0 ? cmd.Summary : "No summary";
-						var remarkSplit = cmd.Remarks.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
-						var remarks = remarkSplit.Length > 1
-								? $"``{CommandHandler.prefixChar}{remarkSplit[0]}``\n**Example:** ``{CommandHandler.prefixChar}{remarkSplit[1]}``"
-								: $"``{CommandHandler.prefixChar}{cmd.Remarks}``";
-						await ReplyAsync($"**Command info for ``{cmd.Name}``**\n" +
-						$"**Aliases**: {cmd.Aliases.PrettyPrint()}\n**Module**: ``{cmd.Module}``\n**Summary**: ``{summ}``\n**Usage**: {remarks}");
-					}
-					else
-					{
-						await ReplyAsync($"Command ``{rem}`` not found");
-					}
-				}
-				return;
-			}
-			foreach (var command in service.Commands)
-			{
-				if (command.Module.Aliases.First() == "")
-				{
-					var result = await command.CheckPreconditionsAsync(Context, map);
-					if (result.IsSuccess)
-						total += command.Name + ", ";
-				}
-			}
-			if (total.Length > 2)
-				total = total.Truncate(2);
-			string modules = "";
-			foreach (var module in service.Modules)
-			{
-				if (new string[] { "COMMANDS", "OWNER" }.All(x => x != module.Name.ToUpper()) && module.Commands.Any())
-				{
-					modules += $"\n_{module.Name}_: ";
-					foreach (var command in module.Commands)
-					{
-						var result = await command.CheckPreconditionsAsync(Context, map);
-						if (result.IsSuccess)
-							modules += $"{command.Name}, ";
-					}
-					modules = modules.Truncate(2);
-				}
-			}
+					// x command from module default
+					sentModule = null;
+					sentCommand = rem;
+					currentCommand = service.Commands.FirstOrDefault(c =>
+							c.Aliases.Any(a => string.Equals(a, sentCommand, StringComparison.CurrentCultureIgnoreCase)));
 
-			await ReplyAsync($"**Usable commands for {Context.User.Username}**\n" +
-				$"{total}" +
-				$"{modules}\n\n" +
-				$"Get command specific help: ``{CommandHandler.prefixChar}help <name>`` or ``{CommandHandler.prefixChar}help <module> <name>``");
+					// check for modules
+					if (currentCommand == null)
+					{
+						var currentModule = service.Modules.FirstOrDefault(m =>
+								m.Aliases.Any(a => string.Equals(a, sentCommand, StringComparison.CurrentCultureIgnoreCase)));
+
+						// A module was found
+						if (currentModule != null)
+						{
+							header += $" **for module {currentModule.Aliases.First()}**";
+							commandlist = "";
+							foreach (var command in currentModule.Commands)
+							{
+								var result = await command.CheckPreconditionsAsync(Context, map);
+								if (result.IsSuccess)
+									commandlist += command.Name + ", ";
+							}
+							if (string.IsNullOrEmpty(commandlist))
+								commandlist = $"No commands found matching predicate ``filter:commands in:module:{sentCommand} condition:usable``";
+							else if (commandlist.TrimEnd().EndsWith(","))
+								commandlist = commandlist.Truncate(2);
+
+							await ReplyAsync($"{header}\n" +
+											$"{commandlist}\n\n" +
+											$"Get command specific help: ``{CommandHandler.prefixChar}help [module] <name>``");
+							return;
+						}
+						else // Also no module found.
+						{
+							await ReplyAsync($"No results matching predicate ``{sentCommand} in:commands,modules``");
+							return;
+						}
+					}
+				}
+
+
+				var checkPreconditionsAsync = currentCommand?.CheckPreconditionsAsync(Context, map);
+				if (checkPreconditionsAsync != null)
+				{
+					var result = await checkPreconditionsAsync;
+					var summ = currentCommand.Summary == null || currentCommand.Summary.Length <= 0
+						? "No summary"
+						: currentCommand.Summary;
+					var remarkSplit = currentCommand.Remarks.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
+					var remarks = currentCommand.Remarks == null || currentCommand.Remarks.Length <= 0
+						? "No remarks"
+						: remarkSplit.Length > 1
+							? $"``{CommandHandler.prefixChar}{remarkSplit[0]}``" +
+							$"\n" +
+							$"**Example:** ``{CommandHandler.prefixChar}{remarkSplit[1]}``"
+							: $"``{CommandHandler.prefixChar}{currentCommand.Remarks}``";
+					var moduleAlias = currentCommand.Module.Aliases.First();
+					var commandAlias =
+						$"``{currentCommand.Aliases.First(a => string.Equals($"{(sentModule == null ? sentCommand : $"{sentModule} {sentCommand}")}", a, StringComparison.CurrentCultureIgnoreCase))}``";
+					var headerCommand =
+						$"command:{sentCommand}";
+					var headerText = sentModule == null
+						? $"_{headerCommand}_"
+						: $"_module:{moduleAlias} {headerCommand}_";
+					// If more aliases present, append them to the commandAlias string
+					if (currentCommand.Aliases.Count > 1)
+						commandAlias += $"\n**Aliases**: " +
+										string.Join(", ",
+											currentCommand.Aliases.Where(
+													a => !string.Equals($"{(sentModule == null ? sentCommand : $"{sentModule} {sentCommand}")}", a, StringComparison.CurrentCultureIgnoreCase))
+												.Select(a => $"``{a}``"));
+					await
+						ReplyAsync(
+							$"**Command info for** {headerText}" +
+							$"\n" +
+							$"{(sentModule == null ? "" : $"**Module **: ``{moduleAlias}``\n")}" +
+							$"**Command**: {commandAlias}" +
+							$"\n" +
+							$"**Summary**: ``{summ}``" +
+							$"\n" +
+							$"**Usage**: {remarks}" +
+							$"\n" +
+							$"**Usable by {sender?.Username}**: ``{(result.IsSuccess ? "yes" : "no")}``");
+				}
+				else
+					await ReplyAsync($"No results matching predicate ``{(sentModule != null ? $"{sentCommand} in:module:{sentModule}" : $"find:{sentCommand} in:commands")}``");
+			}
 		}
 	}
 }
