@@ -4,8 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using TheGuide.Systems.Snowflake;
 
 namespace TheGuide.Systems
@@ -23,6 +26,7 @@ namespace TheGuide.Systems
 				Creator = source.Creator;
 				LastEditor = source.LastEditor;
 				Claimers = source.Claimers;
+				ID = default(long);
 			}
 			else
 			{
@@ -33,6 +37,7 @@ namespace TheGuide.Systems
 				Creator = string.Empty;
 				LastEditor = string.Empty;
 				Claimers = new List<string>();
+				ID = default(long);
 			}
 		}
 
@@ -43,42 +48,134 @@ namespace TheGuide.Systems
 		public string Creator;
 		public string LastEditor;
 		public List<string> Claimers;
+		public long ID;
 
-		public override bool Validate()
+		public override void Validate(long? id)
 		{
-			return
-				!string.IsNullOrEmpty(Name)
-				&& !string.IsNullOrEmpty(Output)
-				&& !string.IsNullOrEmpty(Creator)
-				&& !string.IsNullOrEmpty(LastEditor)
-				&& TimeCreated != DateTime.MinValue
-				&& LastEdited != DateTime.MinValue
-				&& Claimers.Any();
+			Name = Name == string.Empty ? "Unknown" : Name;
+			Output = Output ?? string.Empty;
+			TimeCreated = TimeCreated == DateTime.MinValue ? DateTime.Now : TimeCreated;
+			LastEdited = LastEdited == DateTime.MinValue ? DateTime.Now : LastEdited;
+			Creator = Creator == string.Empty ? "Unknown" : Creator;
+			LastEditor = LastEditor == string.Empty ? "Unknown" : LastEditor;
+			Claimers = !Claimers.Any() ? new List<string>() : Claimers;
+			ID = ID == default(long) ? id ?? default(long) : ID;
 		}
 	}
 
 	public static class TagSystem
 	{
-		private static Id64Generator idGen = new Id64Generator();
+		private static readonly Id64Generator idGen = new Id64Generator();
 
 		// ./assembly/dist/tags/
 		private static string rootDir =>
 			Path.Combine(Program.AssemblyDirectory, "dist", "tags");
 
 		// Gets all json filenames from x guild
-		public static string[] tagFiles(ulong id) =>
-			Directory.GetFiles(Path.Combine(rootDir, $"{id}"), "*.json")
-				.Select(Path.GetFileNameWithoutExtension)
-				.ToArray();
+		public static IEnumerable<TagJson> tags(ulong guid) =>
+			Directory.GetFiles(Path.Combine(rootDir, $"{guid}"), "*.json")
+				.Select(x => JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(x)));
 
-		
+		public static Dictionary<string, TagJson> jsonfiles(ulong guid) =>
+			Directory.GetFiles(Path.Combine(rootDir, $"{guid}"), "*.json")
+				.ToDictionary(x => x, x => JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(x)));
 
+		public static TagJson getTag(ulong guid, string name) =>
+			tags(guid)
+				.FirstOrDefault(t => string.Equals(t.Name, name.RemoveWhitespace(), StringComparison.CurrentCultureIgnoreCase));
 
+		public static TagJson getTag(ulong guid, long tid) =>
+			tags(guid)
+				.FirstOrDefault(t => t.ID == tid);
+
+		public static async Task Maintain(IDiscordClient client)
+		{
+			await Task.Run(() =>
+			{
+				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
+				Directory.CreateDirectory(rootDir);
+			});
+		}
+
+		public static async Task<GuideResult> CreateTag(ulong guid, string name, TagJson input, bool check = true)
+		{
+			await Task.Yield();
+			if (check && tags(guid).Any(t => string.Equals(t.Name, name, StringComparison.CurrentCultureIgnoreCase)))
+				return new GuideResult($"Tag ``{name}`` already exists!");
+			var result = await WriteTag(guid, input);
+			return result;
+		}
+
+		public static async Task<GuideResult> WriteTag(ulong guid, TagJson input)
+		{
+			await Task.Yield();
+			long useId = input.ID != default(long) ? input.ID : idGen.GenerateId();
+			input.ID = useId;
+			File.WriteAllText(Path.Combine(rootDir, $"{guid}", $"{useId}.json"), JsonConvert.SerializeObject(input));
+			var result = new GuideResult();
+			result.SetIsSuccess(tags(guid).Any(t => t.ID == useId));
+			return result;
+		}
+
+		public static async Task<GuideResult> DeleteTag(ulong guid, string name)
+		{
+			await Task.Yield();
+			var tag = tags(guid).FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.CurrentCultureIgnoreCase));
+			if (tag == null)
+				return new GuideResult($"Tag ``{name}`` not found!");
+			File.Delete(Path.Combine(rootDir, $"{guid}", $"{tag.ID}.json"));
+			return new GuideResult("", true);
+		}
+
+		public static async Task<Dictionary<long, string>> ValidateTags(ulong guid)
+		{
+			var validatedTags = new Dictionary<long, string>();
+			var copy = new List<TagJson>(tags(guid));
+			foreach (var tag in copy)
+			{
+				var oldJson = new TagJson(tag).Serialize();
+				tag.Validate(tag.ID);
+				var result = await WriteTag(guid, tag);
+				var newJson = getTag(guid, tag.ID);
+				if (result.IsSuccess && newJson != null && newJson.Serialize() != oldJson)
+					validatedTags.Add(tag.ID, tag.Name);
+			}
+			await RestoreIDs(guid);
+
+			return validatedTags;
+		}
+
+		private static async Task RestoreIDs(ulong guid)
+		{
+			await Task.Yield();
+
+			foreach (var kvp in jsonfiles(guid))
+			{
+				var json = JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(kvp.Key));
+				long parsed;
+				if (long.TryParse(Path.GetFileNameWithoutExtension(kvp.Key), out parsed))
+				{
+					if (json.ID == default(long))
+					{
+						json.ID = parsed;
+						File.WriteAllText(kvp.Key, json.Serialize());
+					}
+				}
+				else
+				{
+					File.Delete(kvp.Key);
+				}
+			}
+		}
 
 		// Try to execute a tag, if it wants to run a command
 		public static async Task<bool> AttemptExecute(CommandService service, IDependencyMap map, CommandContext context, string name)
 		{
-			string data = LoadTagJson(context.Guild.Id, name).Output;
+			var tag = getTag(context.Guild.Id, name);
+			if (tag == null)
+				return false;
+
+			string data = tag.Output;
 			var affix = "command:";
 			// Does not run a command
 			if (!data.StartsWith(affix) || (!data.RemoveWhitespace().StartsWith("command:tagget") && data.RemoveWhitespace().StartsWith("command:tag")))

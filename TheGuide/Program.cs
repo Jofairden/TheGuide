@@ -126,16 +126,16 @@ namespace TheGuide
 			map.Add(client);
 			map.Add(cooldowns);
 
-			// json Maintainer
 			//await JsonSystem.Setup(client);
 			var timer = new Timer(async s =>
 			{
-				int tries = 3;
+				int tries = 5;
 				bool success = false;
 				while (!success && tries > 0)
 				{
 					try
 					{
+						await TagSystem.Maintain(client);
 						await SubSystem.Maintain(client);
 						await ModSystem.Maintain(client);
 						success = true;

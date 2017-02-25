@@ -71,7 +71,7 @@ namespace TheGuide
 				//var channel = await context.User?.CreateDMChannelAsync();
 
 				// Attempt to find a tag with this name
-				var result2 = await service.ExecuteAsync(context, $"tag get [blankAttempt]:{message.Content.Substring(1)}", map);
+				var result2 = await service.ExecuteAsync(context, $"tag get [AttemptExecute:]{message.Content.Substring(1)}", map);
 				if ((result2 as ExecuteResult?)?.Exception == null && result2.IsSuccess) // Tag was found
 					return;
 				else

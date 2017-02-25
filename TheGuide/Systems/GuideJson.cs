@@ -4,13 +4,14 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
 {
 	public interface IGuideJson
 	{
 		string Serialize();
-		bool Validate();
+		void Validate(long? id);
 	}
 
     public abstract class GuideJson : IGuideJson
@@ -18,7 +19,14 @@ namespace TheGuide.Systems
 		public virtual string Serialize() =>
 			JsonConvert.SerializeObject(this);
 
-		public virtual bool Validate() => true;
+	    public virtual void Validate()
+	    {
+		    
+	    }
+	    public virtual void Validate(long? id)
+	    {
+		    
+	    }
 
 		public override string ToString()
 		{
@@ -30,5 +38,8 @@ namespace TheGuide.Systems
 
 			return string.Join("\n", fields.Select(x => $"**{x.Key.AddSpacesToSentence().Uncapitalize()}**: {x.Value}").ToArray());
 		}
+
+		public string ToJson() =>
+			JsonConvert.SerializeObject(this);
 	}
 }

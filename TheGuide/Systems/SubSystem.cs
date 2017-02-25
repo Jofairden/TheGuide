@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using TheGuide.Systems.Helpers;
 
 namespace TheGuide.Systems
@@ -34,12 +35,10 @@ namespace TheGuide.Systems
 		public Dictionary<ulong, ulong> Data; // key => channelID, value => roleID
 		public List<ulong> AdminRoles; // => roleID
 
-		public override bool Validate()
+		public override void Validate()
 		{
-			return
-				GUID != default(ulong)
-				&& Data.Any()
-				&& AdminRoles.Any();
+			Data = !Data.Any() ? new Dictionary<ulong, ulong>() : Data;
+			AdminRoles = !AdminRoles.Any() ? new List<ulong>() : AdminRoles;
 		}
 	}
 
@@ -65,12 +64,10 @@ namespace TheGuide.Systems
 		public ulong UID;
 		public List<ulong> SubRoles;
 
-		public override bool Validate()
+		public override void Validate()
 		{
-			return
-				!string.IsNullOrEmpty(Name)
-				&& UID != default(ulong)
-				&& SubRoles.Any();
+			Name = string.IsNullOrEmpty(Name) ? "null" : Name;
+			SubRoles = !SubRoles.Any() ? new List<ulong>() : SubRoles;
 		}
 	}
 
@@ -198,17 +195,13 @@ namespace TheGuide.Systems
 					continue;
 
 				var json = LoadSubUserJson(guid, parsed);
-
-				if (!json.Validate())
-				{
-					if (string.IsNullOrEmpty(json.Name))
-						json.Name = "Unknown";
-					if (json.SubRoles == null)
-						json.SubRoles = new List<ulong>();
-
-					await CreateUserSub(guid, parsed, json, true);
-					count.Add(name);
-				}
+				var oldJson = new SubUserJson(json).Serialize();
+				json.Validate();
+				var result = await CreateUserSub(guid, parsed, json, true);
+				var newJson = jsonfiles(guid).FirstOrDefault(j => j == $"{json.UID}");
+				if (result.IsSuccess && newJson != null &&
+					oldJson != File.ReadAllText(Path.Combine(rootDir, $"{guid}", $"{json.UID}")))
+					count.Add(json.Name);
 			}
 			return count;
 		}
