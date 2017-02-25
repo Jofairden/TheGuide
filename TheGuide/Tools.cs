@@ -12,9 +12,22 @@ using Discord.WebSocket;
 
 namespace TheGuide
 {
+	// Some helpful methods etc.
 	public static class Tools
 	{
 		public static Random Rand = new Random();
+
+		public static bool AreSorted<T>(IEnumerable<T> ids)
+		{
+			var enumerable = ids as T[] ?? ids.ToArray();
+			return enumerable.SequenceEqual(enumerable.OrderBy(id => id));
+		}
+
+		public static bool AreUnique<T>(IEnumerable<T> ids)
+		{
+			var enumerable = ids as T[] ?? ids.ToArray();
+			return enumerable.Distinct().Count() == enumerable.Count();
+		}
 
 		public static IEnumerable<string> ChunksUpto(this string str, int maxChunkSize)
 		{

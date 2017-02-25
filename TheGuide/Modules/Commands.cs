@@ -13,6 +13,7 @@ using Discord.WebSocket;
 using Newtonsoft.Json.Linq;
 using TheGuide;
 using TheGuide.Systems;
+using TheGuide.Systems.Snowflake;
 
 namespace TheGuide.Modules
 {
@@ -27,6 +28,18 @@ namespace TheGuide.Modules
 		{
 			service = _service;
 			map = _map;
+		}
+
+		[Command("snowflake")]
+		[Alias("sf")]
+		public async Task SnowFlake([Remainder] int rem)
+		{
+			var gen = new Id64Generator();
+			long[] ids = gen.Take(rem).ToArray();
+			await ReplyAsync($"Generated snowflake ids:\n{string.Join("\n", ids)}");
+			var genGuid = new IdGuidGenerator();
+			Guid[] guids = genGuid.Take(rem).ToArray();
+			await ReplyAsync($"Generated snowflake guids:\n{string.Join("\n", guids)}");
 		}
 
 		[Command("version")]

@@ -19,6 +19,7 @@ namespace TheGuide.Preconditions
 					context.User.Id == _appInfo.Owner.Id
 						? PreconditionResult.FromSuccess()
 						: PreconditionResult.FromError("You are not the bot owner.")).ConfigureAwait(false);
+
 			var applicationInfoAsync = (context as CommandContext)?.Client.GetApplicationInfoAsync();
 			if (applicationInfoAsync != null)
 				_appInfo = await applicationInfoAsync;

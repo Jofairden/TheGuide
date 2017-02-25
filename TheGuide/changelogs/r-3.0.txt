@@ -17,16 +17,42 @@ Added a tag claim command which can claim a tag if one isn't claimed, or can tra
 Added a tag unclaim command which can unclaim a tag if you own it
 Added a tag info command which can report info of a tag
 
+**Tags**: Why ownership? In the future, you'll be able to apply rulesets to tags you own!
+
 Added 'subscription' commands, see below!
 
 ``Subscription system``
-Created a subscription system:
+**Created a subscription system**:
 Each guild can have an unlimited amount of subscriptions. Users can subscribe to channels, they will be granted a 'sub-' role when they do.
 A guild administrator will need to specify an admin role for this system, although any user with admin. privileges overrides this.
 Admins can call: ?sub create #channel @role
 The command finds channels/roles by: name, mention or id. (try to avoid mentions if you can)
 Users can call: ?sub <channel> or ?sub me <channel> to subscribe.
 Users can call: ?sub list or ?sub list <user> to view possible subscriptions.
+See ?help module:sub for more help
+
+Storage hierarchy:
+./dist/
+|
+| => date.txt
+| => modlist.json
+|
+|_> changelogs
+|	|
+|	| => r-3.0txt
+|
+|_> subs
+|	|
+|	|_> <guid>
+|		|
+|		| => <uid>.json
+|		| => server.json
+|
+|_> tags
+	|
+	|_> <guid>
+		|
+		| => <tag>.json
 
 ``Other``
 **You now specifically look for a module help by calling**: ?help module:name
