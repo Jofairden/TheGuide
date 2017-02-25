@@ -20,10 +20,10 @@ namespace TheGuide.Modules
 		private readonly CommandService service;
 		private readonly IDependencyMap map;
 
-		public Sub(CommandService _service, IDependencyMap _map)
+		public Sub(CommandService service, IDependencyMap map)
 		{
-			service = _service;
-			map = _map;
+			this.service = service;
+			this.map = map;
 		}
 
 		/// <summary>
@@ -71,10 +71,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will add/remove a certain role as 'admin' for Subsystem to server data
 		/// </summary>
-		/// <param name="role"></param>
-		/// <returns></returns>
 		[Command("createadmin")]
-		[Alias("makeadmin", "adminrole", "deleteadmin", "removeadmin", "deladmin", "remadmin")]
+		[Alias("makeadmin", "adminrole", "deleteadmin", "removeadmin", "deladmin", "remadmin", "admin")]
 		[SubAdminAttr]
 		public async Task CreateAdmin([Remainder] IRole role)
 		{
@@ -95,8 +93,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Self command, channel parameter
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		[Name("no-help")]
 		[Command, Priority(10)]
 		[Summary("Sub yourself to a certain channel")]
@@ -115,9 +111,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Self command, user + channel parameter
 		/// </summary>
-		/// <param name="user"></param>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		[Name("no-help")]
 		[Command, Priority(10)]
 		[Summary("Sub a user to a certain channel")]
@@ -137,8 +130,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to sub yourself to channel
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		[Command("me")]
 		[Summary("Sub yourself to a certain channel, finds any channel by name, mention or ID")]
 		[Remarks("me <channel>\nme #github --OR-- me github --OR-- me \\#github")]
@@ -155,8 +146,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to delete a subscription of a channel
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		[Command("delete")]
 		[Alias("remove")]
 		[Summary("Delete a subscription of a channel")]
@@ -176,8 +165,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to delete a subscription of a role
 		/// </summary>
-		/// <param name="role"></param>
-		/// <returns></returns>
 		[Command("delete")]
 		[Alias("remove")]
 		[Summary("Delete a subscription of a channel linked to role")]
@@ -197,9 +184,9 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to clear all subscriptions for guild
 		/// </summary>
-		/// <returns></returns>
 		[Command("clear")]
 		[Summary("Delete all subscriptions for guild")]
+		[Remarks("clear")]
 		[SubAdminAttr]
 		public async Task Clear()
 		{
@@ -207,30 +194,70 @@ namespace TheGuide.Modules
 			if (oldJson.Data.Any())
 			{
 				// distinct select roles from data
-				var data = oldJson.Data.GroupBy(kvp => kvp.Value).Select(g => g.First()).Select(kvp => kvp.Value);
-				var groles = (Context.Guild as SocketGuild).Roles.Where(r => data.Contains(r.Id)).ToArray();
+				var data =
+					oldJson.Data
+						.GroupBy(kvp => kvp.Value)
+						.Select(g => g.First())
+						.Select(kvp => kvp.Value);
 
-				// tries to remove roles from users
-				foreach (var socketGuildUser in (Context.Guild as SocketGuild).Users)
+				var guild = Context.Guild as SocketGuild;
+				if (guild != null)
 				{
-					var roles = socketGuildUser.Roles.Where(r => groles.Contains(r)).ToArray();
-					if (roles.Any())
-						await socketGuildUser.RemoveRolesAsync(roles);
-				}
+					// guild roles found from json data
+					var groles =
+						guild.Roles
+						.Where(r => data.Contains(r.Id))
+						.ToArray();
 
-				//todo: config: remove roles from server upon clear?
-				//remove roles
-				if (false) // true/false config
-					foreach (var socketRole in groles)
-						await socketRole.DeleteAsync();
+					// tries to remove roles from users
+					foreach (var user in guild.Users)
+					{
+						var roles =
+							user.Roles
+								.Where(r =>
+									groles.Contains(r)).ToArray();
+
+						if (roles.Any())
+							await user.RemoveRolesAsync(roles);
+
+						// reset user data
+						await SubSystem.CreateUserSub(
+							Context.Guild.Id,
+							user.Id,
+							new SubUserJson()
+							{
+								Name = user.GenFullName(),
+								UID = user.Id,
+								SubRoles = new List<ulong>()
+
+							},
+							true);
+					}
+
+					//todo: config: remove roles from server upon clear?
+					//remove roles
+					if (true) // true/false config
+						foreach (var socketRole in groles)
+							await socketRole.DeleteAsync();
+				}
 			}
-			var totalSubs = oldJson.Data.Count;
-			var oldSubs = oldJson.Data.Select(x =>
-			$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == x.Key).Name ?? "null"}**: {Context.Guild.GetRole(x.Value)?.Name ?? "null"}");
-			var json = new SubServerJson { GUID = Context.Guild.Id, Data = new Dictionary<ulong, ulong>() };
-			await SubSystem.CreateServerSub(json.GUID, json);
-			var msg = $"Removed {totalSubs} subscription{(totalSubs > 1 ? "s" : "")} from server:\n\n";
+			var oldSubs =
+				oldJson.Data
+					.Select(x =>
+						$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == x.Key).Name ?? "null"}**: {Context.Guild.GetRole(x.Value)?.Name ?? "null"}");
+
+			// Reset server data
+			await SubSystem.CreateServerSub(
+				Context.Guild.Id,
+				new SubServerJson()
+				{
+					GUID = Context.Guild.Id,
+					AdminRoles = oldJson.AdminRoles
+				});
+
+			var msg = $"Removed {oldJson.Data.Count} subscription{(oldJson.Data.Count > 1 ? "s" : "")} from server:\n\n";
 			msg += string.Join("\n", oldSubs).Cap(1999 - msg.Length);
+
 			await ReplyAsync(msg);
 		}
 

@@ -24,10 +24,10 @@ namespace TheGuide.Modules
 		private readonly CommandService service;
 		private readonly IDependencyMap map;
 
-		public Commands(CommandService _service, IDependencyMap _map)
+		public Commands(CommandService service, IDependencyMap map)
 		{
-			service = _service;
-			map = _map;
+			this.service = service;
+			this.map = map;
 		}
 
 		[Command("snowflake")]
