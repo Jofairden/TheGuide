@@ -64,12 +64,12 @@ namespace TheGuide.Systems
 		    }
 	    }
 
-	    public static async Task MaintainContent(IDiscordClient client)
+	    public static async Task Maintain(IDiscordClient client)
 	    {
 		    if (File.Exists(modlistPath) && File.Exists(datePath))
 		    {
 			    string date = File.ReadAllText(datePath);
-			    var dateTime = DateTime.FromBinary(long.Parse(date));
+				var dateTime = DateTime.FromBinary(long.Parse(date));
 			    var diff = DateTime.Now - dateTime;
 			    needsToMaintain = diff.TotalDays >= 1d;
 		    }

@@ -13,7 +13,7 @@ namespace TheGuide
 	{
 		// variables
 		public const int cooldownDelay = 2500; // in ms
-		public const char prefixChar = '.'; // prefix char for commands
+		public const char prefixChar = '?'; // prefix char for commands
 		private CommandService service;
 		private DiscordSocketClient client;
 		private IDependencyMap map;

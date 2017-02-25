@@ -157,7 +157,7 @@ namespace TheGuide.Systems
 			string data = LoadTagJson(context.Guild.Id, name).Output;
 			var affix = "command:";
 			// Does not run a command
-			if (!data.StartsWith(affix) || data.RemoveWhitespace().StartsWith("command:tag"))
+			if (!data.StartsWith(affix) || (!data.RemoveWhitespace().StartsWith("command:tagget") && data.RemoveWhitespace().StartsWith("command:tag")))
 				return false;
 
 			//var newContext = new DummyContext(context.Client, context.Guild, context.Channel, context.User);

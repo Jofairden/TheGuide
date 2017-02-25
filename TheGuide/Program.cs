@@ -110,9 +110,13 @@ namespace TheGuide
 
 			// json Maintainer
 			await JsonSystem.Setup(client);
-			var timer = new Timer(async s => await JsonSystem.MaintainContent(client),
+			var timer = new Timer(async s => 
+			{
+				await SubSystem.Maintain(client);
+				await JsonSystem.Maintain(client);
+			},
 			null,
-			TimeSpan.FromMinutes(5),
+			TimeSpan.FromSeconds(0),
 			TimeSpan.FromDays(0.5d));
 
 			// Handler

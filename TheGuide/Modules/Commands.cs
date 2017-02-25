@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
 using TheGuide;
 using TheGuide.Systems;
@@ -32,51 +31,45 @@ namespace TheGuide.Modules
 		[Command("version")]
 		[Summary("returns the bot version")]
 		[Remarks("version")]
-		public async Task Version([Remainder] string rem = null)
-		{
+		public async Task Version([Remainder] string rem = null) =>
 			await ReplyAsync(
 				$"I am running on ``{Program.version}``\n" +
 				$"Use ``{CommandHandler.prefixChar}info`` for more elaborate information.");
-		}
 
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
 		[Remarks("ping")]
-		public async Task Ping([Remainder] string rem = null)
-		{
-			var latency = (Context.Client as DiscordSocketClient)?.Latency;
-			if (latency != null)
-				await ReplyAsync(
-					$"My heartrate is ``{(int)(60d / latency * 1000)}`` bpm ({latency} ms)");
-		}
+		public async Task Ping([Remainder] string rem = null) =>
+			await ReplyAsync($"My heartrate is ``{(int)(60d / (Context.Client as DiscordSocketClient)?.Latency * 1000)}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
 
 		[Command("changelog")]
+		[Alias("changelogs")]
 		[Summary("Sends a changelog via a DM")]
 		[Remarks("changelog")]
 		public async Task Changelog([Remainder] string rem = null)
 		{
 			var ch = await Context.Message.Author.CreateDMChannelAsync();
-			var changelog = File.ReadAllText(Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{Program.version}.txt"));
-			if (!string.IsNullOrEmpty(changelog))
+			string changelogFile = rem != null ? rem : Program.version;
+			// Replace \r\n with \n to save some string length
+			string changelogTxt = File.ReadAllText(Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt")).Replace("\r\n", "\n");
+			if (!string.IsNullOrEmpty(changelogTxt))
 			{
-				await ch.SendMessageAsync(changelog);
+				foreach (string msg in changelogTxt.ChunksUpto(1999))
+					await ch.SendMessageAsync(msg);
 				await Context.Message.AddReactionAsync("👌");
 				await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚");
 				return;
 			}
-			await ReplyAsync($"Could not find changelogs.");
+			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``");
 		}
 
 		[Command("src")]
 		[Alias("source")]
 		[Summary("Shows a link to the code of this bot")]
 		[Remarks("src")]
-		public async Task Src([Remainder] string rem = null)
-		{
-			await ReplyAsync(
-				$"Here's how I am made! <https://github.com/gorateron/theguide-discord>");
-		}
+		public async Task Src([Remainder] string rem = null) =>
+			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/theguide-discord>");
 
 		[Command("info")]
 		[Alias("about")]
@@ -219,7 +212,7 @@ namespace TheGuide.Modules
 					string readString = await reader.ReadToEndAsync();
 					if (readString.StartsWith("Failed"))
 					{
-						await JsonSystem.MaintainContent(Context.Client);
+						await JsonSystem.Maintain(Context.Client);
 
 						var sb = new StringBuilder();
 						sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
@@ -412,7 +405,7 @@ namespace TheGuide.Modules
 		public async Task Mod([Remainder][Summary("The mod name or part of it")] string mod)
 		{
 			// Maintain json
-			await JsonSystem.MaintainContent(Context.Client);
+			await JsonSystem.Maintain(Context.Client);
 			// Use mod string
 			var usemod = mod.RemoveWhitespace();
 			var sb = new StringBuilder();
@@ -435,7 +428,7 @@ namespace TheGuide.Modules
 				// Cap to 2000 chars, max chars for a discord message
 				usestr = sb.ToString().Cap(2000);
 				// If msg is capped and doesn't end with ``, we truncate past the last comma
-				if (usestr.Length >= 2000 && !usestr.EndsWith("``"))
+				if (!usestr.EndsWith("``"))
 				{
 					int index = usestr.LastIndexOf(',');
 					if (index > 0)
@@ -480,7 +473,7 @@ namespace TheGuide.Modules
 				sb.Append($"**Truncated mods**: {truncated.Truncate(2)}");
 
 			// Cap to 2000 chars, max chars for a discord message
-			usestr = sb.ToString().Cap(2000);
+			usestr = sb.ToString().Cap(1999);
 			// If msg is capped and doesn't end with ``, we truncate past the last comma
 			if (!usestr.EndsWith("``"))
 			{
@@ -492,8 +485,82 @@ namespace TheGuide.Modules
 			await ReplyAsync($"{usestr}");
 		}
 
-		// forgive me for this piece of crap, I don't feel motivated to make this a proper piece of code atm.
-		// also, I believe it does not check aliases
+		[Command("modversion")]
+		[Alias("modver", "modv")]
+		[Summary("Gets the version of a mod")]
+		[Remarks("modversion <internal modname> --OR-- modversion <part of name>\nmod examplemod")]
+		public async Task ModVersion([Remainder][Summary("The mod name or part of it")] string mod)
+		{
+			// Maintain json
+			await JsonSystem.Maintain(Context.Client);
+			// Use mod string
+			var usemod = mod.RemoveWhitespace();
+			var sb = new StringBuilder();
+			var usestr = "";
+
+			// If there is no mod found with this name
+			if (!JsonSystem.modnames.Any(m
+				=> string.Equals(m, usemod, StringComparison.CurrentCultureIgnoreCase)))
+			{
+				sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
+
+				// Get all mod names which contain the input, then append it to the strinbuilder in ``name``, format
+				JsonSystem.modnames.Where(n => n.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
+					.ToList().ForEach(n => sb.Append($"``{n}``, "));
+
+				// No mods were found.
+				if (sb.ToString().EndsWith(Environment.NewLine))
+					sb.Append("No mods found...");
+
+				// Cap to 1999 chars, max chars for a discord message
+				usestr = sb.ToString().Cap(1999);
+				// If msg is capped and doesn't end with ``, we truncate past the last comma
+				if (!usestr.EndsWith("``"))
+				{
+					int index = usestr.LastIndexOf(',');
+					if (index > 0)
+						usestr = usestr.Substring(0, index);
+				}
+
+				// Reply
+				await ReplyAsync($"{usestr}");
+				return;
+			}
+
+			// Some mod is found continue.
+			int count = 0;
+			string truncated = "";
+
+			// for every JObject in the modlist JArray, where mod "name" are equal to the input or the "name" contains the input
+			// showcases 2 ways of getting "name", x.Value<string>("name") 
+			// you can also do (x as JObject)?.SelectToken("name") then cast it to string, or use .ToObject<string>()
+			foreach (JObject jToken in JsonSystem.modlist.Where(x =>
+				string.Equals((string)(x as JObject)?.SelectToken("name").ToObject<string>(), usemod, StringComparison.CurrentCultureIgnoreCase)
+				|| x.Value<string>("name").Contains(usemod, StringComparison.CurrentCultureIgnoreCase)))
+			{
+				var jObj = (jToken as JObject);
+				var jObjName = jObj.Property("name").Value.ToObject<string>();
+				// Already displayed 3 mod info, truncate the rest
+				if (count >= 3 && count < 10)
+				{
+					truncated += $"``{jObjName}``, ";
+					continue;
+				}
+
+				sb.AppendLine($"**{jObjName}**: {jObj.Property("version").Value.ToObject<string>()}");
+				count++;
+			}
+			if (count >= 3)
+				sb.AppendLine($"**Other mods**: {truncated.Truncate(2)}");
+			if (count >= 10)
+				sb.AppendLine($"Found more mods, the rest was truncated.");
+
+			usestr = sb.ToString();
+			await ReplyAsync($"{usestr}");
+		}
+
+		// help v2.0
+		// somewhat optimized, also checks for aliases now
 		[Command("help")]
 		[Alias("guide")]
 		[Summary("Shows info about commands")]
@@ -562,7 +629,7 @@ namespace TheGuide.Modules
 			{
 				// help is called with arguments
 				CommandInfo currentCommand;
-				if (rem.Any(char.IsWhiteSpace))
+				if (rem.Any(char.IsWhiteSpace) && !rem.StartsWith("module:") && rem != "sub")
 				{
 					// x command from module y
 					//TODO: config: setting for name to hardmatch, or also look for aliases?
@@ -585,8 +652,9 @@ namespace TheGuide.Modules
 					// check for modules
 					if (currentCommand == null)
 					{
+						var checkCommand = sentCommand.StartsWith("module:") ? rem.Substring(7) : rem;
 						var currentModule = service.Modules.FirstOrDefault(m =>
-								m.Aliases.Any(a => string.Equals(a, sentCommand, StringComparison.CurrentCultureIgnoreCase)));
+								m.Aliases.Any(a => string.Equals(a, checkCommand, StringComparison.CurrentCultureIgnoreCase)));
 
 						// A module was found
 						if (currentModule != null)
