@@ -9,36 +9,47 @@ using Newtonsoft.Json;
 
 namespace TheGuide.Systems
 {
-	// Possibly for future use
-	public class TagResult : IResult
+	public class TagJson : GuideJson
 	{
-		public TagResult(CommandError? x = null, string y = null, bool z = false)
+		public TagJson(TagJson source = null)
 		{
-			Error = x;
-			ErrorReason = y;
-			IsSuccess = z;
+			if (source != null)
+			{
+				Name = source.Name;
+				Output = source.Output;
+				TimeCreated = source.TimeCreated;
+				LastEdited = source.LastEdited;
+				Creator = source.Creator;
+				LastEditor = source.LastEditor;
+			}
+			else
+			{
+				Name = string.Empty;
+				Output = string.Empty;
+				TimeCreated = DateTime.MinValue;
+				LastEdited = DateTime.MinValue;
+				Creator = string.Empty;
+				LastEditor = string.Empty;
+			}
 		}
 
-		public void SetCommandError(CommandError? x)
+		public string Name;
+		public string Output;
+		public DateTime TimeCreated;
+		public DateTime LastEdited;
+		public string Creator;
+		public string LastEditor;
+
+		public override bool Validate()
 		{
-			Error = x;
+			return
+				!string.IsNullOrEmpty(Name)
+				&& !string.IsNullOrEmpty(Output)
+				&& !string.IsNullOrEmpty(Creator)
+				&& !string.IsNullOrEmpty(LastEditor)
+				&& TimeCreated != DateTime.MinValue
+				&& LastEdited != DateTime.MinValue;
 		}
-
-		public void SetErrorReason(string x)
-		{
-			ErrorReason = x;
-		}
-
-		public void SetIsSuccess(bool x)
-		{
-			IsSuccess = x;
-		}
-
-		public CommandError? Error { get; private set; } = null;
-
-		public string ErrorReason { get; private set; } = null;
-
-		public bool IsSuccess { get; private set; } = false;
 	}
 
 	// It is common practice here, to put the guildid (ulong) as the first parameter, any abstract types go last.
@@ -55,16 +66,16 @@ namespace TheGuide.Systems
 				.ToArray();
 
 		// Attempts to create x tag for y guild with z input, if it does not exist yet.
-		public static async Task<TagResult> CreateTag(ulong guildid, string name, TagJson input)
+		public static async Task<GuideResult> CreateTag(ulong guildid, string name, TagJson input)
 		{
 			await Task.Yield();
-			if (TagExists(guildid, name)) return new TagResult(null, "Tag already exists", false);
+			if (TagExists(guildid, name)) return new GuideResult("Tag already exists", false);
 			var result = await WriteTag(guildid, name, input);
 			return result;
 		}
 
 		// Attempts to write x tag for y with z input
-		public static async Task<TagResult> WriteTag(ulong guildid, string name, TagJson input)
+		public static async Task<GuideResult> WriteTag(ulong guildid, string name, TagJson input)
 		{
 			await Task.Yield();
 			var path = Path.Combine(rootDir, $"{guildid}", $"{name}.json");
@@ -72,17 +83,17 @@ namespace TheGuide.Systems
 			File.WriteAllText(path, json);
 			var text = File.ReadAllText(path);
 			var isSuccess = string.Equals(text, json);
-			return new TagResult(null, isSuccess ? null : "Tag written was not the same as input.", isSuccess);
+			return new GuideResult(isSuccess ? null : "Tag written was not the same as input.", isSuccess);
 		}
 
-		public static async Task<TagResult> DeleteTag(ulong guildid, string name)
+		public static async Task<GuideResult> DeleteTag(ulong guildid, string name)
 		{
 			await Task.Yield();
 			var path = Path.Combine(rootDir, $"{guildid}", $"{name}.json");
 			if (TagExists(guildid, name))
 				File.Delete(path);
 			var isSuccess = File.Exists(path);
-			return new TagResult(null, isSuccess ? null : "File still exists after deletion.", isSuccess);
+			return new GuideResult(isSuccess ? null : "File still exists after deletion.", isSuccess);
 		}
 
 		// Try to list all tag names from guild in format: `tag, tag1, tag2

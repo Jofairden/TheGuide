@@ -12,40 +12,38 @@ using TheGuide.Systems.Helpers;
 
 namespace TheGuide.Systems
 {
-	public class SubServerJson
+	public class SubServerJson : GuideJson
 	{
-		public SubServerJson(ulong guid = default(ulong), Dictionary<ulong, ulong> data = null)
+		public SubServerJson(SubServerJson source = null)
 		{
-			GUID = guid;
-			Data = data ?? new Dictionary<ulong, ulong>();
+			if (source != null)
+			{
+				GUID = source.GUID;
+				Data = new Dictionary<ulong, ulong>(source.Data);
+				AdminRoles = new List<ulong>(source.AdminRoles);
+			}
+			else
+			{
+				GUID = default(ulong);
+				Data = new Dictionary<ulong, ulong>();
+				AdminRoles = new List<ulong>();
+			}
 		}
 
-		public ulong GUID;
-		// Role ID key representing Channel ID value
-		public Dictionary<ulong, ulong> Data;
+		public ulong GUID; // => guild ID
+		public Dictionary<ulong, ulong> Data; // key => channelID, value => roleID
+		public List<ulong> AdminRoles; // => roleID
 
-		public string Serialize() =>
-			JsonConvert.SerializeObject(this);
-
-		public bool Validate()
+		public override bool Validate()
 		{
-			return GUID != default(ulong)
-				&& Data.Any();
-		}
-
-		public override string ToString()
-		{
-			var fields =
-			this.GetType()
-			.GetFields()
-			.Select(fi => new { FieldName = fi.Name, FieldValue = fi.GetValue(this) })
-			.ToDictionary(x => x.FieldName, x => x.FieldValue);
-
-			return string.Join("\n", fields.Select(x => $"**{x.Key.AddSpacesToSentence().Uncapitalize()}**: {x.Value}").ToArray());
+			return
+				GUID != default(ulong)
+				&& Data.Any()
+				&& AdminRoles.Any();
 		}
 	}
 
-	public class SubUserJson
+	public class SubUserJson : GuideJson
 	{
 		public SubUserJson(SubUserJson source = null)
 		{
@@ -55,63 +53,25 @@ namespace TheGuide.Systems
 				UID = source.UID;
 				SubRoles = new List<ulong>(source.SubRoles);
 			}
+			else
+			{
+				Name = string.Empty;
+				UID = default(ulong);
+				SubRoles = new List<ulong>();
+			}
 		}
 
 		public string Name;
 		public ulong UID;
 		public List<ulong> SubRoles;
 
-		public bool Validate()
+		public override bool Validate()
 		{
 			return
 				!string.IsNullOrEmpty(Name)
 				&& UID != default(ulong)
 				&& SubRoles.Any();
 		}
-
-		public string Serialize() => JsonConvert.SerializeObject(this);
-
-		public override string ToString()
-		{
-			var fields =
-			this.GetType()
-			.GetFields()
-			.Select(fi => new { FieldName = fi.Name, FieldValue = fi.GetValue(this) })
-			.ToDictionary(x => x.FieldName, x => x.FieldValue);
-
-			return string.Join("\n", fields.Select(x => $"**{x.Key.AddSpacesToSentence().Uncapitalize()}**: {x.Value}").ToArray());
-		}
-	}
-
-	public class SubResult : IResult
-	{
-		public SubResult(string y = null, bool z = false)
-		{
-			Error = null;
-			ErrorReason = y;
-			IsSuccess = z;
-		}
-
-		public void SetCommandError(CommandError? x)
-		{
-			Error = x;
-		}
-
-		public void SetErrorReason(string x)
-		{
-			ErrorReason = x;
-		}
-
-		public void SetIsSuccess(bool x)
-		{
-			IsSuccess = x;
-		}
-
-		public CommandError? Error { get; private set; } = null;
-
-		public string ErrorReason { get; private set; } = null;
-
-		public bool IsSuccess { get; private set; } = false;
 	}
 
 	public class SubSystem
@@ -125,7 +85,11 @@ namespace TheGuide.Systems
 				.Select(Path.GetFileNameWithoutExtension)
 				.ToArray();
 
-		// Tries to maintain directories along with server.json files
+		/// <summary>
+		/// Tries to maintain directories along with server.json files and uid.json files
+		/// </summary>
+		/// <param name="client"></param>
+		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
 		{
 			await Task.Run(async () => 
@@ -138,14 +102,32 @@ namespace TheGuide.Systems
 					Directory.CreateDirectory(path);
 					if (!File.Exists(Path.Combine(path, "server.json")))
 					{
-						await CreateServerSub(guild.Id, new SubServerJson(guild.Id));
+						await CreateServerSub(guild.Id, new SubServerJson {GUID = guild.Id});
+					}
+					foreach (var socketGuildUser in guild.Users)
+					{
+						path = Path.Combine(path, $"{socketGuildUser.Id}.json");
+						var userJson = File.Exists(path)
+							? LoadSubUserJson(path)
+							: new SubUserJson
+							{
+								Name = socketGuildUser.GenFullName(),
+								UID = socketGuildUser.Id,
+								SubRoles = new List<ulong>()
+							};
+						await CreateUserSub(guild.Id, socketGuildUser.Id, userJson);
 					}
 				}
 			});
 		}
 
-		// Tries to write a server.json file
-		public static async Task<SubResult> CreateServerSub(ulong guid, SubServerJson input)
+		/// <summary>
+		/// Tries to write a server.json file
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="input"></param>
+		/// <returns></returns>
+		public static async Task<GuideResult> CreateServerSub(ulong guid, SubServerJson input)
 		{
 			var path = Path.Combine(rootDir, $"{guid}", $"server.json");
 			var json = input.Serialize();
@@ -153,17 +135,24 @@ namespace TheGuide.Systems
 			var raw = await Task.Run(() => File.ReadAllText(path));
 			var isSuccess = string.Equals(raw, json);
 			return
-				new SubResult(
+				new GuideResult(
 				isSuccess ? null : "Server.json written was not the same as input.", isSuccess);
 		}
 
-		// Tries to write a uid.json file
-		public static async Task<SubResult> CreateUserSub(ulong guid, ulong uid, SubUserJson input, bool ignoreCheck = false)
+		/// <summary>
+		/// Tries to write a uid.json file
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="uid"></param>
+		/// <param name="input"></param>
+		/// <param name="ignoreCheck"></param>
+		/// <returns></returns>
+		public static async Task<GuideResult> CreateUserSub(ulong guid, ulong uid, SubUserJson input, bool ignoreCheck = false)
 		{
 			await Task.Yield();
 			if (!ignoreCheck && SubUserExists(guid, uid))
 				return 
-					new SubResult( 
+					new GuideResult( 
 					"Sub already exists", false);
 
 			var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
@@ -172,12 +161,17 @@ namespace TheGuide.Systems
 			var raw = await Task.Run(() => File.ReadAllText(path));
 			var isSuccess = string.Equals(raw, json);
 			return
-				new SubResult(
+				new GuideResult(
 				isSuccess ? null : $"{uid}.json written was not the same as input.", isSuccess);
 		}
 
-		// Tries to delete a uid.json file
-		public static async Task<SubResult> DeleteTag(ulong guid, ulong uid)
+		/// <summary>
+		/// Tries to delete a uid.json file
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="uid"></param>
+		/// <returns></returns>
+		public static async Task<GuideResult> DeleteUserSub(ulong guid, ulong uid)
 		{
 			await Task.Yield();
 			var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
@@ -185,11 +179,15 @@ namespace TheGuide.Systems
 				await Task.Run(() => File.Delete(path));
 			var isSuccess = !File.Exists(path);
 			return 
-				new SubResult(
+				new GuideResult(
 					isSuccess ? null : $"{uid}.json still exists after deletion.", isSuccess);
 		}
 
-		// Tries to validate all uid.json files
+		/// <summary>
+		/// Tries to validate all uid.json files
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <returns></returns>
 		public static async Task<List<string>> ValidateSubs(ulong guid)
 		{
 			var count = new List<string>();
@@ -203,18 +201,12 @@ namespace TheGuide.Systems
 
 				if (!json.Validate())
 				{
-					var subjson = new SubUserJson
-					{
-						Name = name,
-						SubRoles = json.SubRoles
-					};
+					if (string.IsNullOrEmpty(json.Name))
+						json.Name = "Unknown";
+					if (json.SubRoles == null)
+						json.SubRoles = new List<ulong>();
 
-					if (string.IsNullOrEmpty(subjson.Name))
-						subjson.Name = "Unknown";
-					if (subjson.SubRoles == null)
-						subjson.SubRoles = new List<ulong>();
-
-					await CreateUserSub(guid, parsed, subjson, true);
+					await CreateUserSub(guid, parsed, json, true);
 					count.Add(name);
 				}
 			}

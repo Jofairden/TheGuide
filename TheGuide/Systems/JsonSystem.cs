@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
 {
-    public static class JsonSystem
+	public static class JsonSystem
     {
 	    public static JObject modlistData;
 	    public static JArray modlist;

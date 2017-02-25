@@ -10,6 +10,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using TheGuide.ID;
+using TheGuide.Modules;
 using TheGuide.Systems;
 // Just using this to show off it's possible, and how to.
 using stringShortDict = System.Collections.Generic.Dictionary<string, short>;
@@ -78,7 +79,7 @@ namespace TheGuide
 
 			// Begin app
 			Console.Title = $"The Guide {version} - {AssemblyDirectory}";
-			await Console.Out.WriteLineAsync($"{oath2Url}?client_id={clientid}&scope=bot&permissions={permissions}");
+			await Console.Out.WriteLineAsync($"{oath2Url}?client_id={clientid}&scope=bot");
 			await Console.Out.WriteLineAsync($"Start date: {time}");
 
 			// Client
@@ -101,7 +102,24 @@ namespace TheGuide
 			// After connection
 			await Client_LatencyUpdated(client.Latency, client.Latency);
 			client.LatencyUpdated += Client_LatencyUpdated;
-			client.JoinedGuild += Client_JoinedGuild;
+
+			// Create tag directory for new server
+			client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
+
+			// Maintain sub system when user joins/leave
+			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
+			client.UserJoined += async (u) =>
+			{
+				var result = await SubSystem.CreateUserSub(u.Guild.Id, u.Id, new SubUserJson{ Name = u.GenFullName(), UID = u.Id, SubRoles = new List<ulong>() }, true);
+				if (!result.IsSuccess)
+					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+			};
+			client.UserLeft += async (u) =>
+			{
+				var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
+				if (!result.IsSuccess)
+					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+			};
 
 			// Map
 			var map = new DependencyMap();
@@ -126,11 +144,6 @@ namespace TheGuide
 			await client.SetGameAsync("Terraria");
 
 			await Task.Delay(-1);
-		}
-
-		private async Task Client_JoinedGuild(SocketGuild arg)
-		{
-			await JsonSystem.CreateTagDir(arg.Id);
 		}
 
 		private async Task Client_Log(LogMessage e)

@@ -3,6 +3,7 @@
 Fixed info command showing $ instead of # between the author name and discrimination number
 Fixed whois command not seeing spaces
 Technically not a bugfix, but improved how the changelog command is handled drastically. Now easier to maintain and works better.
+Tags can now get other tags (ex: ?tag create GetOtherTag command:tag get SomeOtherTag)
 
 ``The new and improved help command``
 The help command was pretty much half rewritten and enhanced.
@@ -16,7 +17,19 @@ Added a tag claim command which can claim a tag if one isn't claimed, or can tra
 Added a tag unclaim command which can unclaim a tag if you own it
 Added a tag info command which can report info of a tag
 
+Added 'subscription' commands, see below!
+
+``Subscription system``
+Created a subscription system:
+Each guild can have an unlimited amount of subscriptions. Users can subscribe to channels, they will be granted a 'sub-' role when they do.
+A guild administrator will need to specify an admin role for this system, although any user with admin. privileges overrides this.
+Admins can call: ?sub create #channel @role
+The command finds channels/roles by: name, mention or id. (try to avoid mentions if you can)
+Users can call: ?sub <channel> or ?sub me <channel> to subscribe.
+Users can call: ?sub list or ?sub list <user> to view possible subscriptions.
+
 ``Other``
+**You now specifically look for a module help by calling**: ?help module:name
 (Should have) fixed most indentation problems for github
 Added API version to info command output
 Tags now also are stored with: creation date, last edited date, creator, last editor
@@ -27,9 +40,11 @@ Improved and optimized helper methods in Tools class
 Improved and optimized TagSystem class
 Improved the help command A LOT
 
+Commands can now be excluded from the help command by naming them 'no-help'
+
 ``To-do``
 Allow users to create blacklist/whitelist or rulesets for tags they own (eg. disallow a certain user from using their tag, or vice versa)
 Allow guilds to have a config to configure things such as: command prefix char, allowed roles per command
 Make sure bot doesn't output mentions
-Make sure commands' output don't go over cap (2000)
+Make sure commands' output don't go over cap (2000) (mostly done)
 Make my own ranking system (similar to meebot's)

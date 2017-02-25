@@ -16,11 +16,12 @@ using TheGuide.Systems;
 
 namespace TheGuide.Modules
 {
+	//todo: config: which module is 'default'?
 	[Name("default")]
 	public class Commands : ModuleBase
 	{
-		private CommandService service;
-		private IDependencyMap map;
+		private readonly CommandService service;
+		private readonly IDependencyMap map;
 
 		public Commands(CommandService _service, IDependencyMap _map)
 		{
@@ -608,6 +609,8 @@ namespace TheGuide.Modules
 						modules += $"\n``{module.Name}``: ";
 						foreach (var command in module.Commands)
 						{
+							if (string.Equals(command.Name, "no-help", StringComparison.CurrentCultureIgnoreCase))
+								continue;
 							var result = await command.CheckPreconditionsAsync(Context, map);
 							if (result.IsSuccess)
 								modules += $"{command.Name}, ";
@@ -629,7 +632,7 @@ namespace TheGuide.Modules
 			{
 				// help is called with arguments
 				CommandInfo currentCommand;
-				if (rem.Any(char.IsWhiteSpace) && !rem.StartsWith("module:") && rem != "sub")
+				if (rem.Any(char.IsWhiteSpace) && !rem.StartsWith("module:") && !string.Equals(rem, "sub", StringComparison.CurrentCultureIgnoreCase))
 				{
 					// x command from module y
 					//TODO: config: setting for name to hardmatch, or also look for aliases?
@@ -663,6 +666,8 @@ namespace TheGuide.Modules
 							commandlist = "";
 							foreach (var command in currentModule.Commands)
 							{
+								if (string.Equals(command.Name, "no-help", StringComparison.CurrentCultureIgnoreCase))
+									continue;
 								var result = await command.CheckPreconditionsAsync(Context, map);
 								if (result.IsSuccess)
 									commandlist += command.Name + ", ";
@@ -684,7 +689,6 @@ namespace TheGuide.Modules
 						}
 					}
 				}
-
 
 				var checkPreconditionsAsync = currentCommand?.CheckPreconditionsAsync(Context, map);
 				if (checkPreconditionsAsync != null)
