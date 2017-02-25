@@ -54,8 +54,13 @@ namespace TheGuide.Modules
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
 		[Remarks("ping")]
-		public async Task Ping([Remainder] string rem = null) =>
-			await ReplyAsync($"My heartrate is ``{(int)(60d / (Context.Client as DiscordSocketClient)?.Latency * 1000)}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
+		public async Task Ping([Remainder] string rem = null)
+		{
+			var d = 60d / (Context.Client as DiscordSocketClient)?.Latency * 1000;
+			if (d != null)
+				await ReplyAsync(
+					$"My heartrate is ``{(int) d}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
+		}
 
 		[Command("changelog")]
 		[Alias("changelogs")]
@@ -127,8 +132,6 @@ namespace TheGuide.Modules
 				// Get all users in guilds with this role
 				var users =
 					client?.Guilds
-						.AsParallel()
-						.WithDegreeOfParallelism(2)
 						.Select(g =>
 							g.Users.Where(u =>
 								g.Roles.Any(r =>
@@ -164,8 +167,6 @@ namespace TheGuide.Modules
 			{
 				var users =
 					client?.Guilds
-						.AsParallel()
-						.WithDegreeOfParallelism(2)
 						.Select(
 							g =>
 								g.Users.Where(
@@ -195,61 +196,30 @@ namespace TheGuide.Modules
 			}
 		}
 
-		public class UsageAttribute : Attribute
-		{
-			public UsageAttribute(string text)
-			{
-				Text = text;
-			}
-
-			public string Text { get; }
-		}
-
-		private const string queryUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
-		private const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
-
+		
 		[Command("widget")]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]
-		[Remarks("widget <internal modname>\nwidget examplemod")]
-		public async Task Widget([Remainder][Summary("the mod name")]string mod)
+		[Remarks("widget <mod>\nwidget examplemod")]
+		public async Task Widget([Remainder]string mod)
 		{
-			var sendMessageAsync = Context.Channel?.SendMessageAsync($"Please wait while the widget is generated...");
-			if (sendMessageAsync != null)
+			mod = mod.RemoveWhitespace();
+			var mods = ModSystem.mods.Where(m => string.Equals(m, mod, StringComparison.CurrentCultureIgnoreCase));
+
+			if (!mods.Any())
 			{
-				var waitMsg = await sendMessageAsync;
-				var request = WebRequest.Create($"{queryUrl}{mod}");
-				request.Proxy = null;
-				using (var response = await request.GetResponseAsync())
-				using (var reader = new StreamReader(response.GetResponseStream()))
+				await ShowSimilarMods(mod);
+				return;
+			}
+
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				using (var stream = await client.GetStreamAsync($"{ModSystem.widgetUrl}{mod}.png"))
 				{
-					string readString = await reader.ReadToEndAsync();
-					if (readString.StartsWith("Failed"))
-					{
-						await JsonSystem.Maintain(Context.Client);
-
-						var sb = new StringBuilder();
-						sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
-
-						JsonSystem.modnames.Where(n => n.ToUpper().Contains(mod?.ToUpper()))
-							.ToList().ForEach(n => sb.Append($"``{n}``, "));
-
-						if (sb.ToString().EndsWith(Environment.NewLine))
-							sb.Append("No mods found...");
-
-						await ReplyAsync($"{sb.ToString().Truncate(2)}");
-						await waitMsg.DeleteAsync();
-						return;
-					}
-					using (var widgetresponse = await WebRequest.Create($"{widgetUrl}{mod}.png").GetResponseAsync())
-					using (var widgetstream = widgetresponse.GetResponseStream())
-					{
-						var sendFileAsync = Context.Channel?.SendFileAsync(widgetstream, $"{mod}.png", $"Widget for ``{mod}``");
-						if (sendFileAsync != null)
-							await sendFileAsync;
-					}
+					var sendFileAsync = Context.Channel?.SendFileAsync(stream, $"{mod}.png", $"Widget for ``{mod}``");
+					if (sendFileAsync != null)
+						await sendFileAsync;
 				}
-				await waitMsg.DeleteAsync();
 			}
 		}
 
@@ -257,10 +227,8 @@ namespace TheGuide.Modules
 		[Alias("gh")]
 		[Summary("Returns a search link for github matching your predicate")]
 		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
-		public async Task Github([Remainder][Summary("the predicate")]string rem)
-		{
+		public async Task Github([Remainder][Summary("the predicate")]string rem) =>
 			await ReplyAsync($"Uri: https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories");
-		}
 
 		// Note: This example is obsolete, a boolean type reader is bundled with Discord.Commands
 
@@ -285,30 +253,6 @@ namespace TheGuide.Modules
 				kvp = Program.itemConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
 				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
-			//var builder = new EmbedBuilder();
-
-			//var urlSpace = kvp.Key.AddSpacesToSentence().ReplaceWhitespace("_");
-			//builder.WithUrl($"http://terraria.gamepedia.com/{urlSpace}");
-			//HtmlDocument doc = new HtmlDocument();
-			//HttpWebRequest objRequest = (HttpWebRequest)WebRequest.Create($"http://terraria.gamepedia.com/index.php?title={urlSpace}&mobileaction=toggle_view_mobile");
-			//var objResponse = await objRequest.GetResponseAsync();
-			//using (StreamReader sr =
-			//   new StreamReader((objResponse as HttpWebResponse)?.GetResponseStream()))
-			//{
-			//	doc.LoadHtml(sr.ReadToEnd());
-			//}
-			//builder.WithTitle($"{kvp.Key} ({kvp.Value})");
-			//builder.WithImageUrl($"http://37.139.15.41/discord/items/img/Item_{kvp.Value}.png");
-			//builder.WithColor(Color.Default);
-			//builder.WithCurrentTimestamp();
-			//var element =
-			//	doc.DocumentNode.Descendants("table").First(t => t.Attributes["class"].Value.Contains("infobox"));
-			//var elementSplit = element.InnerText.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-			//var tmpList = elementSplit.ToList();
-			//tmpList.RemoveRange(0, elementSplit.Length - 6);
-			//elementSplit = tmpList.ToArray();
-			//builder.WithDescription(string.Join("\n", elementSplit));
-			//await ReplyAsync(replyText, false, builder.Build());
 			await ReplyAsync(replyText);
 		}
 
@@ -418,159 +362,68 @@ namespace TheGuide.Modules
 		[Remarks("mod <internal modname> --OR-- mod <part of name>\nmod examplemod")]
 		public async Task Mod([Remainder][Summary("The mod name or part of it")] string mod)
 		{
-			// Maintain json
-			await JsonSystem.Maintain(Context.Client);
-			// Use mod string
-			var usemod = mod.RemoveWhitespace();
-			var sb = new StringBuilder();
-			var usestr = "";
+			mod = mod.RemoveWhitespace();
+			var mods = ModSystem.mods.Where(m => string.Equals(m, mod, StringComparison.CurrentCultureIgnoreCase));
 
-			// If there is no mod found with this name
-			if (!JsonSystem.modnames.Any(m
-				=> string.Equals(m.ToUpper(), usemod.ToUpper(), StringComparison.CurrentCulture)))
+			if (!mods.Any())
 			{
-				sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
-
-				// Get all mod names which contain the input, then append it to the strinbuilder in ``name``, format
-				JsonSystem.modnames.Where(n => n.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
-					.ToList().ForEach(n => sb.Append($"``{n}``, "));
-
-				// No mods were found.
-				if (sb.ToString().EndsWith(Environment.NewLine))
-					sb.Append("No mods found...");
-
-				// Cap to 2000 chars, max chars for a discord message
-				usestr = sb.ToString().Cap(2000);
-				// If msg is capped and doesn't end with ``, we truncate past the last comma
-				if (!usestr.EndsWith("``"))
-				{
-					int index = usestr.LastIndexOf(',');
-					if (index > 0)
-						usestr = usestr.Substring(0, index);
-				}
-
-				// Reply
-				await ReplyAsync($"{usestr}");
+				await ShowSimilarMods(mod);
 				return;
 			}
 
 			// Some mod is found continue.
-			int count = 0;
-			string truncated = "";
-
-			// for every JObject in the modlist JArray, where mod "name" are equal to the input or the "name" contains the input
-			// showcases 2 ways of getting "name", x.Value<string>("name") 
-			// you can also do (x as JObject)?.SelectToken("name") then cast it to string, or use .ToObject<string>()
-			foreach (
-				JObject jToken in JsonSystem.modlist.Where(x =>
-				string.Equals((string)(x as JObject)?.SelectToken("name").ToObject<string>(), usemod, StringComparison.CurrentCultureIgnoreCase)
-				|| x.Value<string>("name").Contains(usemod, StringComparison.CurrentCultureIgnoreCase)))
-			{
-				// Already displayed 3 mod info, truncate the rest
-				if (count >= 3)
-				{
-					truncated += $"``{jToken.Property("name").Value}``, ";
-					continue;
-				}
-
-				// Append all property info of token to stringbuilder (name and value)
-				foreach (JProperty prop in jToken.Properties())
-				{
-					string propvalue = prop.Name == "name" || prop.Name == "displayname" ? $"``{prop.Value}``" : $"{prop.Value}";
-					sb.AppendLine($"**{prop.Name}**: {propvalue}");
-				}
-				// Custom 'property'
-				sb.AppendLine($"**widget**: {widgetUrl}{jToken.Property("name").Value}.png\n");
-				count++;
-			}
-			if (count >= 3)
-				sb.Append($"**Truncated mods**: {truncated.Truncate(2)}");
-
-			// Cap to 2000 chars, max chars for a discord message
-			usestr = sb.ToString().Cap(1999);
-			// If msg is capped and doesn't end with ``, we truncate past the last comma
-			if (!usestr.EndsWith("``"))
-			{
-				int index = usestr.LastIndexOf(',');
-				if (index > 0)
-					usestr = usestr.Substring(0, index);
-			}
-
-			await ReplyAsync($"{usestr}");
+			var modjson = JObject.Parse(File.ReadAllText(ModSystem.modPath(mod)));
+			var properties =
+				modjson.Properties()
+				.Select(p => $"**{p.Name.FirstCharToUpper().AddSpacesToSentence()}**: {p.Value}");
+			await ReplyAsync(string.Join("\n", properties));
 		}
 
 		[Command("modversion")]
 		[Alias("modver", "modv")]
 		[Summary("Gets the version of a mod")]
-		[Remarks("modversion <internal modname> --OR-- modversion <part of name>\nmod examplemod")]
-		public async Task ModVersion([Remainder][Summary("The mod name or part of it")] string mod)
+		[Remarks("modversion <mod>\nmodversion Example Mod")]
+		public async Task ModVersion([Remainder] string mod)
 		{
-			// Maintain json
-			await JsonSystem.Maintain(Context.Client);
-			// Use mod string
-			var usemod = mod.RemoveWhitespace();
-			var sb = new StringBuilder();
-			var usestr = "";
+			mod = mod.RemoveWhitespace();
+			var mods = ModSystem.mods.Where(m => string.Equals(m, mod, StringComparison.CurrentCultureIgnoreCase));
 
-			// If there is no mod found with this name
-			if (!JsonSystem.modnames.Any(m
-				=> string.Equals(m, usemod, StringComparison.CurrentCultureIgnoreCase)))
+			if (!mods.Any())
 			{
-				sb.AppendLine($"Mod with that name doesn\'t exist\nDid you possibly mean any of these?\n");
-
-				// Get all mod names which contain the input, then append it to the strinbuilder in ``name``, format
-				JsonSystem.modnames.Where(n => n.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
-					.ToList().ForEach(n => sb.Append($"``{n}``, "));
-
-				// No mods were found.
-				if (sb.ToString().EndsWith(Environment.NewLine))
-					sb.Append("No mods found...");
-
-				// Cap to 1999 chars, max chars for a discord message
-				usestr = sb.ToString().Cap(1999);
-				// If msg is capped and doesn't end with ``, we truncate past the last comma
-				if (!usestr.EndsWith("``"))
-				{
-					int index = usestr.LastIndexOf(',');
-					if (index > 0)
-						usestr = usestr.Substring(0, index);
-				}
-
-				// Reply
-				await ReplyAsync($"{usestr}");
+				await ShowSimilarMods(mod);
 				return;
 			}
 
 			// Some mod is found continue.
-			int count = 0;
-			string truncated = "";
+			var modjson = JObject.Parse(File.ReadAllText(ModSystem.modPath(mod)));
+			await ReplyAsync($"**{modjson.Property("displayname").Value}**: {modjson.Property("version").Value}");
+		}
 
-			// for every JObject in the modlist JArray, where mod "name" are equal to the input or the "name" contains the input
-			// showcases 2 ways of getting "name", x.Value<string>("name") 
-			// you can also do (x as JObject)?.SelectToken("name") then cast it to string, or use .ToObject<string>()
-			foreach (JObject jToken in JsonSystem.modlist.Where(x =>
-				string.Equals((string)(x as JObject)?.SelectToken("name").ToObject<string>(), usemod, StringComparison.CurrentCultureIgnoreCase)
-				|| x.Value<string>("name").Contains(usemod, StringComparison.CurrentCultureIgnoreCase)))
+		private async Task ShowSimilarMods(string mod)
+		{
+			var msg =
+						$"Mod with that name doesn\'t exist" +
+						$"\nDid you possibly mean any of these?\n\n";
+
+			var modMsg = "No mods found..."; ;
+
+			var similarMods = ModSystem.mods.Where(m => m.ToUpper().Contains(mod.ToUpper())).ToArray();
+			if (similarMods.Any())
 			{
-				var jObj = (jToken as JObject);
-				var jObjName = jObj.Property("name").Value.ToObject<string>();
-				// Already displayed 3 mod info, truncate the rest
-				if (count >= 3 && count < 10)
+				modMsg = similarMods.PrettyPrint();
+				// Make sure message doesn't exceed discord's max msg length
+				if (modMsg.Length > 2000)
 				{
-					truncated += $"``{jObjName}``, ";
-					continue;
+					modMsg = modMsg.Cap(2000 - msg.Length);
+					// Make sure message doesn't end with a half cut modname
+					var index = modMsg.LastIndexOf(',');
+					var lastModClean = modMsg.Substring(index + 1).Replace("`", "").Trim();
+					if (ModSystem.mods.All(m => m != lastModClean))
+						modMsg = modMsg.Substring(0, index);
 				}
-
-				sb.AppendLine($"**{jObjName}**: {jObj.Property("version").Value.ToObject<string>()}");
-				count++;
 			}
-			if (count >= 3)
-				sb.AppendLine($"**Other mods**: {truncated.Truncate(2)}");
-			if (count >= 10)
-				sb.AppendLine($"Found more mods, the rest was truncated.");
 
-			usestr = sb.ToString();
-			await ReplyAsync($"{usestr}");
+			await ReplyAsync($"{msg}{modMsg}");
 		}
 
 		// help v2.0

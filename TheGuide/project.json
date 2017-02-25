@@ -10,7 +10,8 @@
       "type": "platform",
       "version": "1.0.1"
     },
-    "Newtonsoft.Json": "9.0.1"
+    "Newtonsoft.Json": "9.0.1",
+    "System.Net.Http": "4.3.1"
   },
 
   "frameworks": {

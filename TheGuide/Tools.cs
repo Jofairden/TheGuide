@@ -35,6 +35,13 @@ namespace TheGuide
 				yield return str.Substring(i, Math.Min(maxChunkSize, str.Length - i));
 		}
 
+		public static string FirstCharToUpper(this string input)
+		{
+			if (string.IsNullOrEmpty(input))
+				throw new ArgumentNullException("Input was null or empty!");
+			return input.First().ToString().ToUpper() + input.Substring(1);
+		}
+
 		public static string GenFullName(string username, string discriminator) =>
 			$"{username}#{discriminator}";
 

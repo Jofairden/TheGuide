@@ -104,7 +104,7 @@ namespace TheGuide
 			client.LatencyUpdated += Client_LatencyUpdated;
 
 			// Create tag directory for new server
-			client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
+			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
 
 			// Maintain sub system when user joins/leave
 			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
@@ -127,11 +127,25 @@ namespace TheGuide
 			map.Add(cooldowns);
 
 			// json Maintainer
-			await JsonSystem.Setup(client);
-			var timer = new Timer(async s => 
+			//await JsonSystem.Setup(client);
+			var timer = new Timer(async s =>
 			{
-				await SubSystem.Maintain(client);
-				await JsonSystem.Maintain(client);
+				int tries = 3;
+				bool success = false;
+				while (!success && tries > 0)
+				{
+					try
+					{
+						await SubSystem.Maintain(client);
+						await ModSystem.Maintain(client);
+						success = true;
+					}
+					catch
+					{
+						if (--tries <= 0)
+							throw;
+					}
+				}
 			},
 			null,
 			TimeSpan.FromSeconds(0),
