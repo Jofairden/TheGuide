@@ -59,7 +59,7 @@ namespace TheGuide.Modules
 			var d = 60d / (Context.Client as DiscordSocketClient)?.Latency * 1000;
 			if (d != null)
 				await ReplyAsync(
-					$"My heartrate is ``{(int) d}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
+					$"My heartrate is ``{(int)d}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
 		}
 
 		[Command("changelog")]
@@ -196,7 +196,7 @@ namespace TheGuide.Modules
 			}
 		}
 
-		
+
 		[Command("widget")]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]

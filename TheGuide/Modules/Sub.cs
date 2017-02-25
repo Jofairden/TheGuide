@@ -26,6 +26,10 @@ namespace TheGuide.Modules
 			map = _map;
 		}
 
+		/// <summary>
+		/// Removes all sub roles from the guild, and any user files
+		/// </summary>
+		/// <returns></returns>
 		[Command("clearsubroles")]
 		[Alias("csr")]
 		[SubAdminAttr]
@@ -33,31 +37,35 @@ namespace TheGuide.Modules
 		{
 			var guild = Context.Guild as SocketGuild;
 			var roles = new List<string>();
-			var count = 0;
 			// loop roles
-			foreach (var role in guild.Roles)
-			{
-				//todo: config: configure prefix?
-				if (role.Name.StartsWith("sub-"))
+			if (guild?.Roles != null)
+				foreach (var role in guild?.Roles)
 				{
-					// clear uid.json files from sub role where applicable
-					foreach (var user in guild.Users)
+					//todo: config: configure prefix?
+					if (role.Name.StartsWith("sub-"))
 					{
-						var ujson = SubSystem.LoadSubUserJson(guild.Id, user.Id);
-						if (ujson.SubRoles.Contains(role.Id))
+						// Remove from server data
+						var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
+						serverJson.Data =
+							serverJson.Data
+							.Where(kvp => kvp.Value != role.Id)
+							.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+						await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
+
+						// Clear from user data
+						foreach (var user in guild.Users)
 						{
-							ujson.SubRoles.Remove(role.Id);
-							await SubSystem.CreateUserSub(guild.Id, user.Id, ujson, true);
+							var userJson = SubSystem.LoadSubUserJson(guild.Id, user.Id);
+							userJson.SubRoles = userJson.SubRoles.Where(r => r != role.Id).ToList();
+							await SubSystem.CreateUserSub(guild.Id, user.Id, userJson, true);
 						}
+						roles.Add($"**{role.Name}** ({role.Id})");
+						await role.DeleteAsync();
 					}
-					roles.Add($"**{role.Name}** ({role.Id})");
-					await role.DeleteAsync();
-					count++;
 				}
-			}
 			//reply
-			var msg = $"Removed {count} roles:\n";
-			await ReplyAsync($"{msg}{string.Join("\n", roles).Cap(1999 - msg.Length)}");
+			var msg = roles.Count > 0 ? $"Removed {roles.Count} roles:\n" : "No roles found.";
+			await ReplyAsync(roles.Count > 0 ? $"{msg}{string.Join("\n", roles).Cap(1999 - msg.Length)}" : msg);
 		}
 
 		/// <summary>
@@ -125,7 +133,7 @@ namespace TheGuide.Modules
 
 			await TrySub(user, channel);
 		}
-		
+
 		/// <summary>
 		/// Tries to sub yourself to channel
 		/// </summary>
@@ -217,9 +225,9 @@ namespace TheGuide.Modules
 						await socketRole.DeleteAsync();
 			}
 			var totalSubs = oldJson.Data.Count;
-			var oldSubs = oldJson.Data.Select(x => 
+			var oldSubs = oldJson.Data.Select(x =>
 			$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == x.Key).Name ?? "null"}**: {Context.Guild.GetRole(x.Value)?.Name ?? "null"}");
-			var json = new SubServerJson { GUID = Context.Guild.Id, Data = new Dictionary<ulong, ulong>()};
+			var json = new SubServerJson { GUID = Context.Guild.Id, Data = new Dictionary<ulong, ulong>() };
 			await SubSystem.CreateServerSub(json.GUID, json);
 			var msg = $"Removed {totalSubs} subscription{(totalSubs > 1 ? "s" : "")} from server:\n\n";
 			msg += string.Join("\n", oldSubs).Cap(1999 - msg.Length);
@@ -272,7 +280,7 @@ namespace TheGuide.Modules
 				msg = $"Showing subscriptions of ``{user.GenFullName()}``\n";
 				foreach (var role in userJson.SubRoles)
 				{
-					var data = serverJson.Data.Where(x => x.Value == role).Select(kvp => 
+					var data = serverJson.Data.Where(x => x.Value == role).Select(kvp =>
 					$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == kvp.Key).Name ?? "null"}**: {Context.Guild.GetRole(kvp.Value)?.Name ?? "null"}").ToArray();
 					if (data.Any())
 						msg += string.Join("\n", data);

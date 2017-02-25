@@ -12,9 +12,8 @@ using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
 {
-
 	public static class ModSystem
-    {
+	{
 		internal const string queryUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
 		internal const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
 		internal const string xmlUrl = "http://javid.ddns.net/tModLoader/listmods.php";
@@ -22,24 +21,22 @@ namespace TheGuide.Systems
 		private static string rootDir =>
 			Path.Combine(Program.AssemblyDirectory, "dist");
 
-	    private static string modDir =>
-		    Path.Combine(rootDir, "mods");
+		private static string modDir =>
+			Path.Combine(rootDir, "mods");
 
-	    public static string modPath(string modname) =>
-		    Path.Combine(modDir, $"{modname}.json");
+		public static string modPath(string modname) =>
+			Path.Combine(modDir, $"{modname}.json");
 
-	    public static IEnumerable<string> mods =>
-		    Directory.GetFiles(modDir, "*.json")
-			    .Select(Path.GetFileNameWithoutExtension);
+		public static IEnumerable<string> mods =>
+			Directory.GetFiles(modDir, "*.json")
+				.Select(Path.GetFileNameWithoutExtension);
 
 		/// <summary>
 		/// Maintains mod data
 		/// </summary>
-		/// <param name="client"></param>
-		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
-	    {
-		    await Task.Run(async () =>
+		{
+			await Task.Run(async () =>
 			{
 				// Create dirs
 				Directory.CreateDirectory(rootDir);
@@ -61,7 +58,7 @@ namespace TheGuide.Systems
 				{
 					var data = await DownloadData();
 					var json = JObject.Parse(data);
-					var modlist = (JArray) json.SelectToken("modlist");
+					var modlist = (JArray)json.SelectToken("modlist");
 
 					foreach (var jtoken in modlist)
 					{
@@ -73,26 +70,24 @@ namespace TheGuide.Systems
 						File.WriteAllText(path, $"{DateTime.Now.ToBinary()}");
 				}
 			});
-	    }
+		}
 
 		/// <summary>
 		/// Will download mod json data
 		/// </summary>
-		/// <returns></returns>
-	    private static async Task<string> DownloadData()
+		private static async Task<string> DownloadData()
 		{
-			string postResponse = string.Empty;
-		    using (var client = new System.Net.Http.HttpClient())
-		    {
-			    var values = new Dictionary<string, string>
-			    {
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				var values = new Dictionary<string, string>
+				{
 					{"modloaderversion", "tModLoader v0.9.1.1" }
-			    };
-			    var content = new System.Net.Http.FormUrlEncodedContent(values);
-			    var response = await client.PostAsync(xmlUrl, content);
-			    postResponse = await response.Content.ReadAsStringAsync();
-		    }
-			return postResponse;
+				};
+				var content = new System.Net.Http.FormUrlEncodedContent(values);
+				var response = await client.PostAsync(xmlUrl, content);
+				var postResponse = await response.Content.ReadAsStringAsync();
+				return postResponse;
+			}
 		}
 	}
 }

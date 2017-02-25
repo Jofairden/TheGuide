@@ -110,7 +110,7 @@ namespace TheGuide
 			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
 			client.UserJoined += async (u) =>
 			{
-				var result = await SubSystem.CreateUserSub(u.Guild.Id, u.Id, new SubUserJson{ Name = u.GenFullName(), UID = u.Id, SubRoles = new List<ulong>() }, true);
+				var result = await SubSystem.CreateUserSub(u.Guild.Id, u.Id, new SubUserJson { Name = u.GenFullName(), UID = u.Id, SubRoles = new List<ulong>() }, true);
 				if (!result.IsSuccess)
 					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
 			};
