@@ -70,7 +70,7 @@ namespace TheGuide.Modules
 		[Summary("Shows a link to the code of this bot")]
 		[Remarks("src")]
 		public async Task Src([Remainder] string rem = null) =>
-			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/theguide-discord>");
+			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/TheGuide>");
 
 		[Command("info")]
 		[Alias("about")]
