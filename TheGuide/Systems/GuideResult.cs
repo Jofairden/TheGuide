@@ -6,8 +6,8 @@ using Discord.Commands;
 
 namespace TheGuide.Systems
 {
-    public class GuideResult : IResult
-    {
+	public class GuideResult : IResult
+	{
 		public GuideResult(string y = null, bool z = false)
 		{
 			Error = null;

@@ -72,7 +72,7 @@ namespace TheGuide.Systems
 	}
 
 	public class SubSystem
-    {
+	{
 		// ./assembly/dist/subs/
 		public static string rootDir =>
 			Path.Combine(Program.AssemblyDirectory, "dist", "subs");
@@ -89,7 +89,7 @@ namespace TheGuide.Systems
 		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
 		{
-			await Task.Run(async () => 
+			await Task.Run(async () =>
 			{
 				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
@@ -99,23 +99,25 @@ namespace TheGuide.Systems
 					Directory.CreateDirectory(path);
 					if (!File.Exists(Path.Combine(path, "server.json")))
 					{
-						await CreateServerSub(guild.Id, new SubServerJson {GUID = guild.Id});
+						await CreateServerSub(guild.Id, new SubServerJson { GUID = guild.Id });
 					}
-					foreach (var socketGuildUser in guild.Users)
-					{
-						path = Path.Combine(path, $"{socketGuildUser.Id}.json");
-						var userJson = File.Exists(path)
-							? LoadSubUserJson(path)
-							: new SubUserJson
-							{
-								Name = socketGuildUser.GenFullName(),
-								UID = socketGuildUser.Id,
-								SubRoles = new List<ulong>()
-							};
-						await CreateUserSub(guild.Id, socketGuildUser.Id, userJson);
-					}
+					await guild.DownloadUsersAsync();
+					foreach (var user in guild.Users)
+						await MaintainUser(guild.Id, user);
 				}
 			});
+		}
+
+		public static async Task MaintainUser(ulong guid, IUser user)
+		{
+			var userJson = new SubUserJson
+							{
+								Name = user.GenFullName(),
+								UID = user.Id,
+								SubRoles = new List<ulong>()
+							};
+
+			await CreateUserSub(guid, user.Id, userJson);
 		}
 
 		/// <summary>
@@ -148,8 +150,8 @@ namespace TheGuide.Systems
 		{
 			await Task.Yield();
 			if (!ignoreCheck && SubUserExists(guid, uid))
-				return 
-					new GuideResult( 
+				return
+					new GuideResult(
 					"Sub already exists", false);
 
 			var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
@@ -175,7 +177,7 @@ namespace TheGuide.Systems
 			if (SubUserExists(guid, uid))
 				await Task.Run(() => File.Delete(path));
 			var isSuccess = !File.Exists(path);
-			return 
+			return
 				new GuideResult(
 					isSuccess ? null : $"{uid}.json still exists after deletion.", isSuccess);
 		}

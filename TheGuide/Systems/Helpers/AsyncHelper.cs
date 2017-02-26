@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace TheGuide.Systems.Helpers
 {
-    public static class AsyncHelper
-    {
+	public static class AsyncHelper
+	{
 		public static Task CreateFileAsync(string path)
 		{
 			if (File.Exists(path))

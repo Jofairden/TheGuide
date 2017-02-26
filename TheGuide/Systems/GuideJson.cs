@@ -8,25 +8,32 @@ using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
 {
+	/// <summary>
+	/// GuideJson Interface
+	/// </summary>
 	public interface IGuideJson
 	{
 		string Serialize();
+		void Validate();
 		void Validate(long? id);
 	}
 
-    public abstract class GuideJson : IGuideJson
-    {
+	/// <summary>
+	/// GuideJson class
+	/// </summary>
+	public abstract class GuideJson : IGuideJson
+	{
 		public virtual string Serialize() =>
 			JsonConvert.SerializeObject(this);
 
-	    public virtual void Validate()
-	    {
-		    
-	    }
-	    public virtual void Validate(long? id)
-	    {
-		    
-	    }
+		public virtual void Validate()
+		{
+
+		}
+		public virtual void Validate(long? id)
+		{
+
+		}
 
 		public override string ToString()
 		{

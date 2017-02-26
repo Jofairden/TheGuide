@@ -108,11 +108,13 @@ namespace TheGuide
 
 			// Maintain sub system when user joins/leave
 			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
+			client.GuildMemberUpdated += async (i, j) =>
+			{
+				await SubSystem.MaintainUser(j.Guild.Id, j);
+			};
 			client.UserJoined += async (u) =>
 			{
-				var result = await SubSystem.CreateUserSub(u.Guild.Id, u.Id, new SubUserJson { Name = u.GenFullName(), UID = u.Id, SubRoles = new List<ulong>() }, true);
-				if (!result.IsSuccess)
-					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+				await SubSystem.MaintainUser(u.Guild.Id, u);
 			};
 			client.UserLeft += async (u) =>
 			{

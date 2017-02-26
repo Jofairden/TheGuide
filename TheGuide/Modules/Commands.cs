@@ -30,10 +30,17 @@ namespace TheGuide.Modules
 			this.map = map;
 		}
 
+		/// <summary>
+		/// Generates snowflake IDs
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("snowflake")]
-		[Alias("sf")]
-		public async Task SnowFlake([Remainder] int rem)
+		[Summary("Will generate up to 10 snowflake ids and guids")]
+		[Alias("snowflake [amount]\nsnowflake 10")]
+		public async Task SnowFlake([Remainder] int rem = 1)
 		{
+			rem = Math.Max(0, Math.Min(10, rem));
 			var gen = new Id64Generator();
 			long[] ids = gen.Take(rem).ToArray();
 			await ReplyAsync($"Generated snowflake ids:\n{string.Join("\n", ids)}");
@@ -42,6 +49,11 @@ namespace TheGuide.Modules
 			await ReplyAsync($"Generated snowflake guids:\n{string.Join("\n", guids)}");
 		}
 
+		/// <summary>
+		/// Returns bot version
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("version")]
 		[Summary("returns the bot version")]
 		[Remarks("version")]
@@ -50,6 +62,11 @@ namespace TheGuide.Modules
 				$"I am running on ``{Program.version}``\n" +
 				$"Use ``{CommandHandler.prefixChar}info`` for more elaborate information.");
 
+		/// <summary>
+		/// Returns bot response time
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
@@ -62,6 +79,11 @@ namespace TheGuide.Modules
 					$"My heartrate is ``{(int)d}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
 		}
 
+		/// <summary>
+		/// Returns bot changelog
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("changelog")]
 		[Alias("changelogs")]
 		[Summary("Sends a changelog via a DM")]
@@ -69,7 +91,7 @@ namespace TheGuide.Modules
 		public async Task Changelog([Remainder] string rem = null)
 		{
 			var ch = await Context.Message.Author.CreateDMChannelAsync();
-			string changelogFile = rem != null ? rem : Program.version;
+			string changelogFile = rem ?? Program.version;
 			// Replace \r\n with \n to save some string length
 			string changelogTxt = File.ReadAllText(Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt")).Replace("\r\n", "\n");
 			if (!string.IsNullOrEmpty(changelogTxt))
@@ -83,6 +105,11 @@ namespace TheGuide.Modules
 			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``");
 		}
 
+		/// <summary>
+		/// Returns source repository
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("src")]
 		[Alias("source")]
 		[Summary("Shows a link to the code of this bot")]
@@ -90,6 +117,11 @@ namespace TheGuide.Modules
 		public async Task Src([Remainder] string rem = null) =>
 			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/TheGuide>");
 
+		/// <summary>
+		/// Responds with bot info
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("info")]
 		[Alias("about")]
 		[Summary("Shows elaborate bot info")]
@@ -119,6 +151,11 @@ namespace TheGuide.Modules
 			);
 		}
 
+		/// <summary>
+		/// Lookup a user
+		/// </summary>
+		/// <param name="username"></param>
+		/// <returns></returns>
 		[Command("whois")]
 		[Summary("Whois user lookup")]
 		[Remarks("whois <username/nickname> --OR-- whois role:<rolename>\nwhois the guide --OR-- whois role:admin")]
@@ -145,23 +182,26 @@ namespace TheGuide.Modules
 				{
 					var sb = new StringBuilder();
 					sb.AppendLine($"Users found matching {predicate} predicate\n" +
-								  $"Format: displayname\n");
+								$"Format: displayname\n");
 
 					// Print user info
 					for (int i = 0; i < users.Count; i++)
 					{
 						users[i].ToList().ForEach(u =>
 							sb.AppendLine($"{u.Username}#{u.Discriminator} ({client?.Guilds.ElementAtOrDefault(i).Name})\n" +
-										  $"Roles: {(client?.Guilds.ElementAtOrDefault(i).Roles.Where(urole => !urole.IsEveryone && u.Roles.Any(x => x.Id == urole.Id))).PrintRoles()}\n"));
+										$"Roles: {(client?.Guilds.ElementAtOrDefault(i).Roles.Where(urole => !urole.IsEveryone && u.Roles.Any(x => x.Id == urole.Id))).PrintRoles()}\n"));
 					}
 
 					// Prints all roles together
 					//var sb2 = new StringBuilder();
 					//client?.Guilds.ToList().ForEach(g => g.Roles.ToList().Where(srole => users.Any(user => user.Any(p => p.RoleIds.Contains(srole.Id))) && !srole.IsEveryone).ToList().ForEach(r => sb2.Append($"{r.Name}, ")));
 					//sb.AppendLine($"\n**All roles on users:**\n{sb2}".Truncate(2));
-					await ReplyAsync($"{sb}");
+					var msgs = sb.ToString().ChunksUpto(2000);
+					foreach (var msg in msgs)
+						await ReplyAsync(msg);
 				}
-				else await ReplyAsync($"No users found matching {predicate} predicate.");
+				else
+					await ReplyAsync($"No users found matching {predicate} predicate.");
 			}
 			else
 			{
@@ -196,7 +236,11 @@ namespace TheGuide.Modules
 			}
 		}
 
-
+		/// <summary>
+		/// Generates a mod widget
+		/// </summary>
+		/// <param name="mod"></param>
+		/// <returns></returns>
 		[Command("widget")]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]
@@ -223,18 +267,26 @@ namespace TheGuide.Modules
 			}
 		}
 
+		/// <summary>
+		/// Search on github for repositories
+		/// </summary>
+		/// <param name="rem"></param>
+		/// <returns></returns>
 		[Command("github")]
 		[Alias("gh")]
-		[Summary("Returns a search link for github matching your predicate")]
+		[Summary("Returns a search link for github searching for repositories matching your predicate")]
 		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
 		public async Task Github([Remainder][Summary("the predicate")]string rem) =>
 			await ReplyAsync($"Uri: https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories");
 
-		// Note: This example is obsolete, a boolean type reader is bundled with Discord.Commands
-
+		/// <summary>
+		/// Get an item ID
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		[Command("itemid")]
 		[Alias("item")]
-		[Summary("Searches for an item")]
+		[Summary("Searches for a vanilla item by ID or name")]
 		[Remarks("itemid <name> --OR-- itemid <id>\nitemid Wooden Sword --OR-- itemid 24")]
 		public async Task Itemid([Remainder][Summary("the item name or id")] string name)
 		{
@@ -256,9 +308,14 @@ namespace TheGuide.Modules
 			await ReplyAsync(replyText);
 		}
 
+		/// <summary>
+		/// Get a dust ID
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		[Command("dustid")]
 		[Alias("dust")]
-		[Summary("Searches for a dust")]
+		[Summary("Searches for a vanilla dust by ID or name")]
 		[Remarks("dustid <name> --OR-- dustid <id>\ndustid Fire --OR-- dustid 6")]
 		public async Task Dustid([Remainder][Summary("the dust name or id")] string name)
 		{
@@ -281,9 +338,14 @@ namespace TheGuide.Modules
 			await ReplyAsync(replyText);
 		}
 
+		/// <summary>
+		/// Get a chain id
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		[Command("chainid")]
 		[Alias("chain")]
-		[Summary("Searches for a chain")]
+		[Summary("Searches for a vanilla chain by ID or name")]
 		[Remarks("chainid <name> --OR-- chainid <id>\nchainid SilkRope --OR-- chainid 4")]
 		public async Task Chainid([Remainder][Summary("the chain name or id")] string name)
 		{
@@ -306,9 +368,14 @@ namespace TheGuide.Modules
 			await ReplyAsync(replyText);
 		}
 
+		/// <summary>
+		/// Get an ammo id
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		[Command("ammoid")]
 		[Alias("ammo")]
-		[Summary("Searches for an ammo")]
+		[Summary("Searches for a vanilla ammo by ID or name")]
 		[Remarks("ammoid <name> --OR-- ammoid <id>\nammoid Bullet --OR-- ammoid 97")]
 		public async Task Ammoid([Remainder][Summary("the ammo name or id")] string name)
 		{
@@ -331,9 +398,14 @@ namespace TheGuide.Modules
 			await ReplyAsync(replyText);
 		}
 
+		/// <summary>
+		/// Get a buff id
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		[Command("buffid")]
 		[Alias("buff")]
-		[Summary("Searches for an buff")]
+		[Summary("Searches for a vanilla buff by ID or name")]
 		[Remarks("buffid <name> --OR-- buffid <id>\nbuffid IronSkin --OR-- ammoid 5")]
 		public async Task Buffid([Remainder][Summary("the buff name or id")] string name)
 		{
@@ -356,6 +428,11 @@ namespace TheGuide.Modules
 			await ReplyAsync(replyText);
 		}
 
+		/// <summary>
+		/// Get mod info
+		/// </summary>
+		/// <param name="mod"></param>
+		/// <returns></returns>
 		[Command("mod")]
 		[Alias("modinfo")]
 		[Summary("Shows info about a mod")]
@@ -379,6 +456,11 @@ namespace TheGuide.Modules
 			await ReplyAsync(string.Join("\n", properties));
 		}
 
+		/// <summary>
+		/// Get a modversion
+		/// </summary>
+		/// <param name="mod"></param>
+		/// <returns></returns>
 		[Command("modversion")]
 		[Alias("modver", "modv")]
 		[Summary("Gets the version of a mod")]

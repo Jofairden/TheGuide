@@ -82,7 +82,6 @@ namespace TheGuide
 						await context.Channel.SendMessageAsync($"{Format.Bold("Error")} on ``{message.Content}``\n{result}");
 				}
 
-
 				// Add cooldown
 				await AddCooldown(message);
 			}

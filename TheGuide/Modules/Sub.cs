@@ -65,7 +65,7 @@ namespace TheGuide.Modules
 				}
 			//reply
 			var msg = roles.Count > 0 ? $"Removed {roles.Count} roles:\n" : "No roles found.";
-			await ReplyAsync(roles.Count > 0 ? $"{msg}{string.Join("\n", roles).Cap(1999 - msg.Length)}" : msg);
+			await ReplyAsync(roles.Count > 0 ? $"{msg}{string.Join("\n", roles).Cap(2000 - msg.Length)}" : msg);
 		}
 
 		/// <summary>
@@ -88,59 +88,6 @@ namespace TheGuide.Modules
 
 			await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
 			await ReplyAsync(msg);
-		}
-
-		/// <summary>
-		/// Self command, channel parameter
-		/// </summary>
-		[Name("no-help")]
-		[Command, Priority(10)]
-		[Summary("Sub yourself to a certain channel")]
-		[Remarks("sub\nsub #github -- OR -- sub github -- OR -- sub \\#github")]
-		public async Task SubMe([Remainder] ITextChannel channel = null)
-		{
-			if (channel == null)
-			{
-				await service.ExecuteAsync(Context, $"help module:sub", map, MultiMatchHandling.Best);
-				return;
-			}
-
-			await TrySub(Context.User, channel);
-		}
-
-		/// <summary>
-		/// Self command, user + channel parameter
-		/// </summary>
-		[Name("no-help")]
-		[Command, Priority(10)]
-		[Summary("Sub a user to a certain channel")]
-		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
-		[SubAdminAttr]
-		public async Task SubUser(IUser user = null, [Remainder] ITextChannel channel = null)
-		{
-			if (user == null || channel == null)
-			{
-				await service.ExecuteAsync(Context, $"help module:sub", map, MultiMatchHandling.Best);
-				return;
-			}
-
-			await TrySub(user, channel);
-		}
-
-		/// <summary>
-		/// Tries to sub yourself to channel
-		/// </summary>
-		[Command("me")]
-		[Summary("Sub yourself to a certain channel, finds any channel by name, mention or ID")]
-		[Remarks("me <channel>\nme #github --OR-- me github --OR-- me \\#github")]
-		public async Task Me([Remainder] ITextChannel channel = null)
-		{
-			if (channel == null)
-			{
-				await service.ExecuteAsync(Context, $"help sub me", map, MultiMatchHandling.Best);
-				return;
-			}
-			await TrySub(Context.User, channel);
 		}
 
 		/// <summary>
@@ -209,6 +156,7 @@ namespace TheGuide.Modules
 						.Where(r => data.Contains(r.Id))
 						.ToArray();
 
+					await guild.DownloadUsersAsync();
 					// tries to remove roles from users
 					foreach (var user in guild.Users)
 					{
@@ -255,10 +203,60 @@ namespace TheGuide.Modules
 					AdminRoles = oldJson.AdminRoles
 				});
 
-			var msg = $"Removed {oldJson.Data.Count} subscription{(oldJson.Data.Count > 1 ? "s" : "")} from server:\n\n";
-			msg += string.Join("\n", oldSubs).Cap(1999 - msg.Length);
+			var msg = $"No subscriptions removed from server {Context.Guild.Name}";
+			if (oldJson.Data.Count > 0)
+			{
+				msg = $"Removed {oldJson.Data.Count} subscription{(oldJson.Data.Count > 1 ? "s" : "")} from server:\n\n";
+				msg += string.Join("\n", oldSubs).Cap(2000 - msg.Length);
+			}
 
 			await ReplyAsync(msg);
+		}
+
+		/// <summary>
+		/// Self command, channel parameter
+		/// </summary>
+		[Name("no-help")]
+		[Command, Priority(10)]
+		[Summary("Sub yourself to a certain channel")]
+		[Remarks("sub\nsub #github -- OR -- sub github -- OR -- sub \\#github")]
+		public async Task SubMe([Remainder] ITextChannel channel) =>
+			await TrySub(Context.User, channel);
+
+		/// <summary>
+		/// Self command, user + channel parameter
+		/// </summary>
+		[Name("no-help")]
+		[Command, Priority(10)]
+		[Summary("Sub a user to a certain channel")]
+		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
+		[SubAdminAttr]
+		public async Task SubUser(IUser user, [Remainder] ITextChannel channel) =>
+			await TrySub(user, channel);
+
+		/// <summary>
+		/// Self command, channel + user parameter
+		/// </summary>
+		/// <param name="channel"></param>
+		/// <param name="user"></param>
+		/// <returns></returns>
+		[Name("no-help")]
+		[Command, Priority(10)]
+		[Summary("Sub a user to a certain channel")]
+		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
+		[SubAdminAttr]
+		public async Task SubUser(ITextChannel channel, [Remainder] IUser user) =>
+			await TrySub(user, channel);
+
+		/// <summary>
+		/// Tries to sub yourself to channel
+		/// </summary>
+		[Command("me")]
+		[Summary("Sub yourself to a certain channel, finds any channel by name, mention or ID")]
+		[Remarks("me <channel>\nme #github --OR-- me github --OR-- me \\#github")]
+		public async Task Me([Remainder] ITextChannel channel)
+		{
+			await TrySub(Context.User, channel);
 		}
 
 		/// <summary>
@@ -278,7 +276,7 @@ namespace TheGuide.Modules
 				msg += string.Join("\n", serverJson.Data
 					.Select(x =>
 						$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == x.Key).Name ?? "null"}**: {Context.Guild.GetRole(x.Value)?.Name ?? "null"}"))
-					.Cap(1999 - msg.Length);
+					.Cap(2000 - msg.Length);
 			}
 
 			await ReplyAsync(msg);
@@ -299,19 +297,20 @@ namespace TheGuide.Modules
 				await ReplyAsync($"Could not find user.json file for ``{user.GenFullName()}``");
 				return;
 			}
+			var guild = Context.Guild as SocketGuild;
 			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
 			var userJson = SubSystem.LoadSubUserJson(Context.Guild.Id, user.Id);
 			var msg = $"``{user.GenFullName()}`` has no subscriptions.";
 			if (userJson.SubRoles.Any())
 			{
-				msg = $"Showing subscriptions of ``{user.GenFullName()}``\n";
-				foreach (var role in userJson.SubRoles)
-				{
-					var data = serverJson.Data.Where(x => x.Value == role).Select(kvp =>
-					$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == kvp.Key).Name ?? "null"}**: {Context.Guild.GetRole(kvp.Value)?.Name ?? "null"}").ToArray();
-					if (data.Any())
-						msg += string.Join("\n", data);
-				}
+				msg = $"Showing subscriptions of ``{user.GenFullName()}``\n\n";
+				var subs = serverJson.Data.Where(x => userJson.SubRoles.Contains(x.Value)).ToArray();
+				if (!subs.Any())
+					msg += $"No server subscriptions available";
+				else
+					msg += 
+						string.Join("\n", subs.Select(x => $"**{guild?.GetChannel(x.Key).Name ?? "null"}**: {guild?.GetRole(x.Value).Name ?? "null"}"))
+						.Cap(2000 - msg.Length);
 			}
 			await ReplyAsync(msg);
 		}
@@ -482,6 +481,7 @@ namespace TheGuide.Modules
 				await (user as IGuildUser).RemoveRolesAsync(guildRole);
 				if (userJson.SubRoles.Contains(roleID))
 					userJson.SubRoles.Remove(roleID);
+
 				result = await SubSystem.CreateUserSub(Context.Guild.Id, user.Id, userJson, true);
 				await ReplyAsync(result.IsSuccess ? $"Unsubscribed ``{user.GenFullName()}`` from {channel.Mention}" : result.ErrorReason);
 				return;
@@ -491,6 +491,7 @@ namespace TheGuide.Modules
 			await (user as IGuildUser).AddRolesAsync(guildRole);
 			if (!userJson.SubRoles.Contains(roleID))
 				userJson.SubRoles.Add(roleID);
+
 			result = await SubSystem.CreateUserSub(Context.Guild.Id, user.Id, userJson, true);
 			await ReplyAsync(result.IsSuccess ? $"Subscribed ``{user.GenFullName()}`` to {channel.Mention}" : result.ErrorReason);
 		}

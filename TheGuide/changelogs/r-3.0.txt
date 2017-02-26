@@ -52,7 +52,7 @@ Storage hierarchy:
 	|
 	|_> <guid>
 		|
-		| => <tag>.json
+		| => <tagid>.json
 
 ``Other``
 **You now specifically look for a module help by calling**: ?help module:name
@@ -60,11 +60,8 @@ Storage hierarchy:
 Added API version to info command output
 Tags now also are stored with: creation date, last edited date, creator, last editor
 Improved a lot of command descriptions/usages
-Improved TagJson class code
-Improved command classes code
-Improved and optimized helper methods in Tools class
-Improved and optimized TagSystem class
-Improved the help command A LOT
+Rewritted A LOT of code.
+All bot responses should never go over the message limit (2000 chars)
 
 Commands can now be excluded from the help command by naming them 'no-help'
 
@@ -72,5 +69,4 @@ Commands can now be excluded from the help command by naming them 'no-help'
 Allow users to create blacklist/whitelist or rulesets for tags they own (eg. disallow a certain user from using their tag, or vice versa)
 Allow guilds to have a config to configure things such as: command prefix char, allowed roles per command
 Make sure bot doesn't output mentions
-Make sure commands' output don't go over cap (2000) (mostly done)
 Make my own ranking system (similar to meebot's)

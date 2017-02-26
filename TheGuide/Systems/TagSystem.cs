@@ -88,6 +88,11 @@ namespace TheGuide.Systems
 			tags(guid)
 				.FirstOrDefault(t => t.ID == tid);
 
+		/// <summary>
+		/// Maintains content
+		/// </summary>
+		/// <param name="client"></param>
+		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
 		{
 			await Task.Run(() =>
@@ -97,6 +102,14 @@ namespace TheGuide.Systems
 			});
 		}
 
+		/// <summary>
+		/// Creates a tag
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="name"></param>
+		/// <param name="input"></param>
+		/// <param name="check"></param>
+		/// <returns></returns>
 		public static async Task<GuideResult> CreateTag(ulong guid, string name, TagJson input, bool check = true)
 		{
 			await Task.Yield();
@@ -106,6 +119,12 @@ namespace TheGuide.Systems
 			return result;
 		}
 
+		/// <summary>
+		/// Writes a tag
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="input"></param>
+		/// <returns></returns>
 		public static async Task<GuideResult> WriteTag(ulong guid, TagJson input)
 		{
 			await Task.Yield();
@@ -117,6 +136,12 @@ namespace TheGuide.Systems
 			return result;
 		}
 
+		/// <summary>
+		/// Deletes a tag
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		public static async Task<GuideResult> DeleteTag(ulong guid, string name)
 		{
 			await Task.Yield();
@@ -127,6 +152,11 @@ namespace TheGuide.Systems
 			return new GuideResult("", true);
 		}
 
+		/// <summary>
+		/// Will validate all tags
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <returns></returns>
 		public static async Task<Dictionary<long, string>> ValidateTags(ulong guid)
 		{
 			var validatedTags = new Dictionary<long, string>();
@@ -145,6 +175,11 @@ namespace TheGuide.Systems
 			return validatedTags;
 		}
 
+		/// <summary>
+		/// Will attempt to restore tag IDs by their filename, removes files not named by ID
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <returns></returns>
 		private static async Task RestoreIDs(ulong guid)
 		{
 			await Task.Yield();
@@ -168,7 +203,14 @@ namespace TheGuide.Systems
 			}
 		}
 
-		// Try to execute a tag, if it wants to run a command
+		/// <summary>
+		/// Try to execute a tag, if it wants to run a command
+		/// </summary>
+		/// <param name="service"></param>
+		/// <param name="map"></param>
+		/// <param name="context"></param>
+		/// <param name="name"></param>
+		/// <returns></returns>
 		public static async Task<bool> AttemptExecute(CommandService service, IDependencyMap map, CommandContext context, string name)
 		{
 			var tag = getTag(context.Guild.Id, name);
