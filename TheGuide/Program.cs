@@ -96,42 +96,69 @@ namespace TheGuide
 			// Connection
 			// Token.cs is left out intentionally
 			await client.LoginAsync(TokenType.Bot, Token.TestToken);
-			await client.ConnectAsync();
-			await Task.Delay(1000); // Give some time to connect
+			await client.StartAsync();
+			await Task.Delay(2000); // Give some time to connect
 
 			// After connection
-			await Client_LatencyUpdated(client.Latency, client.Latency);
-			client.LatencyUpdated += Client_LatencyUpdated;
+
+			client.Connected += async ()=>
+			{
+				await Client_LatencyUpdated(client.Latency, client.Latency);
+				client.LatencyUpdated += Client_LatencyUpdated;
+				client.GuildMemberUpdated += async (i, j) =>
+				{
+					await SubSystem.MaintainUser(j.Guild.Id, j);
+				};
+				client.UserJoined += async (u) =>
+				{
+					await SubSystem.MaintainUser(u.Guild.Id, u);
+					var ch = await u.CreateDMChannelAsync();
+					await ch.SendMessageAsync(
+						$"Hey there {u.Username}!\n" +
+						$"I see you just joined our server, how lovely!\n" +
+						$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
+						$"\n" +
+						$"Our server uses a channel subscription system!\n" +
+						$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
+						$"\n" +
+						$"Have a nice stay! :wave:");
+				};
+				client.UserLeft += async (u) =>
+				{
+					var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
+					if (!result.IsSuccess)
+						await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+				};
+
+				// Maintain sub system when user joins/leave
+				// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
+				var timer = new Timer(async s =>
+				{
+					int tries = 5;
+					bool success = false;
+					while (!success && tries > 0)
+					{
+						try
+						{
+							await TagSystem.Maintain(client);
+							await SubSystem.Maintain(client);
+							await ModSystem.Maintain(client);
+							success = true;
+						}
+						catch
+						{
+							if (--tries <= 0)
+								throw;
+						}
+					}
+				},
+				null,
+				TimeSpan.FromSeconds(1),
+				TimeSpan.FromMinutes(15));
+			};
 
 			// Create tag directory for new server
 			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
-
-			// Maintain sub system when user joins/leave
-			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
-			client.GuildMemberUpdated += async (i, j) =>
-			{
-				await SubSystem.MaintainUser(j.Guild.Id, j);
-			};
-			client.UserJoined += async (u) =>
-			{
-				await SubSystem.MaintainUser(u.Guild.Id, u);
-				var ch = await u.CreateDMChannelAsync();
-				await ch.SendMessageAsync(
-					$"Hey there {u.Username}!\n" +
-					$"I see you just joined our server, how lovely!\n" +
-					$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
-					$"\n" +
-					$"Our server uses a channel subscription system!\n" +
-					$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
-					$"\n" +
-					$"Have a nice stay! :wave:");
-			};
-			client.UserLeft += async (u) =>
-			{
-				var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
-				if (!result.IsSuccess)
-					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
-			};
 
 			// Map
 			var map = new DependencyMap();
@@ -139,29 +166,7 @@ namespace TheGuide
 			map.Add(cooldowns);
 
 			//await JsonSystem.Setup(client);
-			var timer = new Timer(async s =>
-			{
-				int tries = 5;
-				bool success = false;
-				while (!success && tries > 0)
-				{
-					try
-					{
-						await TagSystem.Maintain(client);
-						await SubSystem.Maintain(client);
-						await ModSystem.Maintain(client);
-						success = true;
-					}
-					catch
-					{
-						if (--tries <= 0)
-							throw;
-					}
-				}
-			},
-			null,
-			TimeSpan.FromSeconds(0),
-			TimeSpan.FromMinutes(15));
+
 
 			// Handler
 			handler = new CommandHandler();
