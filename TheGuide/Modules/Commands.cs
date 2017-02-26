@@ -12,6 +12,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json.Linq;
 using TheGuide;
+using TheGuide.Preconditions;
 using TheGuide.Systems;
 using TheGuide.Systems.Snowflake;
 
@@ -33,11 +34,10 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Generates snowflake IDs
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("snowflake")]
 		[Summary("Will generate up to 10 snowflake ids and guids")]
 		[Alias("snowflake [amount]\nsnowflake 10")]
+		[AdmDevAttr]
 		public async Task SnowFlake([Remainder] int rem = 1)
 		{
 			rem = Math.Max(0, Math.Min(10, rem));
@@ -52,8 +52,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Returns bot version
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("version")]
 		[Summary("returns the bot version")]
 		[Remarks("version")]
@@ -65,8 +63,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Returns bot response time
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
@@ -82,25 +78,27 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Returns bot changelog
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("changelog")]
 		[Alias("changelogs")]
 		[Summary("Sends a changelog via a DM")]
 		[Remarks("changelog")]
 		public async Task Changelog([Remainder] string rem = null)
 		{
-			var ch = await Context.Message.Author.CreateDMChannelAsync();
-			string changelogFile = rem ?? Program.version;
+			var changelogFile = rem ?? Program.version;
 			// Replace \r\n with \n to save some string length
-			string changelogTxt = File.ReadAllText(Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt")).Replace("\r\n", "\n");
-			if (!string.IsNullOrEmpty(changelogTxt))
+			var path = Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt");
+			if (File.Exists(path))
 			{
-				foreach (string msg in changelogTxt.ChunksUpto(1999))
-					await ch.SendMessageAsync(msg);
-				await Context.Message.AddReactionAsync("👌");
-				await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚");
-				return;
+				var changelogTxt = File.ReadAllText(path).Replace("\r\n", "\n");
+				if (!string.IsNullOrEmpty(changelogTxt))
+				{
+					var ch = await Context.Message.Author.CreateDMChannelAsync();
+					foreach (string msg in changelogTxt.ChunksUpto(1999))
+						await ch.SendMessageAsync(msg);
+					await Context.Message.AddReactionAsync("👌");
+					await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚");
+					return;
+				}
 			}
 			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``");
 		}
@@ -108,8 +106,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Returns source repository
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("src")]
 		[Alias("source")]
 		[Summary("Shows a link to the code of this bot")]
@@ -120,12 +116,10 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Responds with bot info
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("info")]
 		[Alias("about")]
 		[Summary("Shows elaborate bot info")]
-		[Remarks("info")]
+		[Remarks("info --OR-- about")]
 		//[RequireContext(ContextType.DM)]
 		public async Task Info([Remainder] string rem = null)
 		{
@@ -134,7 +128,7 @@ namespace TheGuide.Modules
 			await ReplyAsync($"{Format.Bold($"Info for {client?.CurrentUser.GenFullName()}")}\n" +
 							 $"- Author: {Tools.GenFullName(application.Owner.Username, application.Owner.Discriminator)} ({application.Owner.Id})\n" +
 							 $"- Library: Discord.Net ({DiscordConfig.Version})\n" +
-							 $"- API: {DiscordConfig.APIVersion}" +
+							 $"- API: {DiscordConfig.APIVersion}\n" +
 							 $"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
 							 $"- Uptime: {Tools.GetUptime()} (dd\\hh\\mm\\ss)\n" +
 							 $"- Bot version: {Program.version}\n\n" +
@@ -154,10 +148,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Lookup a user
 		/// </summary>
-		/// <param name="username"></param>
-		/// <returns></returns>
 		[Command("whois")]
-		[Summary("Whois user lookup")]
+		[Summary("Whois user lookup in guilds")]
 		[Remarks("whois <username/nickname> --OR-- whois role:<rolename>\nwhois the guide --OR-- whois role:admin")]
 		//[RequireContext(ContextType.DM)]
 		public async Task Whois([Remainder][Summary("the user or predicate")]string username)
@@ -239,8 +231,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Generates a mod widget
 		/// </summary>
-		/// <param name="mod"></param>
-		/// <returns></returns>
 		[Command("widget")]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]
@@ -270,8 +260,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Search on github for repositories
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("github")]
 		[Alias("gh")]
 		[Summary("Returns a search link for github searching for repositories matching your predicate")]
@@ -282,8 +270,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get an item ID
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("itemid")]
 		[Alias("item")]
 		[Summary("Searches for a vanilla item by ID or name")]
@@ -311,8 +297,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get a dust ID
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("dustid")]
 		[Alias("dust")]
 		[Summary("Searches for a vanilla dust by ID or name")]
@@ -341,8 +325,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get a chain id
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("chainid")]
 		[Alias("chain")]
 		[Summary("Searches for a vanilla chain by ID or name")]
@@ -371,8 +353,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get an ammo id
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("ammoid")]
 		[Alias("ammo")]
 		[Summary("Searches for a vanilla ammo by ID or name")]
@@ -401,8 +381,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get a buff id
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("buffid")]
 		[Alias("buff")]
 		[Summary("Searches for a vanilla buff by ID or name")]
@@ -431,8 +409,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get mod info
 		/// </summary>
-		/// <param name="mod"></param>
-		/// <returns></returns>
 		[Command("mod")]
 		[Alias("modinfo")]
 		[Summary("Shows info about a mod")]
@@ -448,6 +424,11 @@ namespace TheGuide.Modules
 				return;
 			}
 
+			// Fixes not finding files
+			mod = ModSystem.mods.FirstOrDefault(m => string.Equals(m, mod, StringComparison.CurrentCultureIgnoreCase));
+			if (mod == null)
+				return;
+
 			// Some mod is found continue.
 			var modjson = JObject.Parse(File.ReadAllText(ModSystem.modPath(mod)));
 			var properties =
@@ -459,8 +440,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Get a modversion
 		/// </summary>
-		/// <param name="mod"></param>
-		/// <returns></returns>
 		[Command("modversion")]
 		[Alias("modver", "modv")]
 		[Summary("Gets the version of a mod")]
@@ -481,15 +460,21 @@ namespace TheGuide.Modules
 			await ReplyAsync($"**{modjson.Property("displayname").Value}**: {modjson.Property("version").Value}");
 		}
 
+		// Helepr method
 		private async Task ShowSimilarMods(string mod)
 		{
 			var msg =
-						$"Mod with that name doesn\'t exist" +
-						$"\nDid you possibly mean any of these?\n\n";
+				$"Mod with that name doesn\'t exist" +
+				$"\nDid you possibly mean any of these?\n\n";
 
 			var modMsg = "No mods found..."; ;
 
-			var similarMods = ModSystem.mods.Where(m => m.ToUpper().Contains(mod.ToUpper())).ToArray();
+			// Find similar mods
+			var similarMods =
+				ModSystem.mods
+					.Where(m => m.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
+					.ToArray();
+
 			if (similarMods.Any())
 			{
 				modMsg = similarMods.PrettyPrint();
@@ -510,6 +495,7 @@ namespace TheGuide.Modules
 
 		// help v2.0
 		// somewhat optimized, also checks for aliases now
+		// by now, actually probably needs a v3.0 lol
 		[Command("help")]
 		[Alias("guide")]
 		[Summary("Shows info about commands")]

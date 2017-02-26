@@ -49,7 +49,7 @@ namespace TheGuide
 		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.0";
+		public const string version = "r-3.1";
 
 		// Cache
 		public static stringShortDict itemConsts;
@@ -95,7 +95,7 @@ namespace TheGuide
 
 			// Connection
 			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.BotToken);
+			await client.LoginAsync(TokenType.Bot, Token.TestToken);
 			await client.ConnectAsync();
 			await Task.Delay(1000); // Give some time to connect
 
@@ -115,6 +115,16 @@ namespace TheGuide
 			client.UserJoined += async (u) =>
 			{
 				await SubSystem.MaintainUser(u.Guild.Id, u);
+				var ch = await u.CreateDMChannelAsync();
+				await ch.SendMessageAsync(
+					$"Hey there {u.Username}!\n" +
+					$"I see you just joined our server, how lovely!\n" +
+					$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
+					$"\n" +
+					$"Our server uses a channel subscription system!\n" +
+					$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
+					$"\n" +
+					$"Have a nice stay! :wave:");
 			};
 			client.UserLeft += async (u) =>
 			{

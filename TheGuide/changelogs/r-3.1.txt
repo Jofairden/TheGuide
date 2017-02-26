@@ -1,0 +1,15 @@
+﻿```r-3.1 Changelog```
+``Bugfixes``
+Fixed mod command not finding file sometimes
+Fixed missing newline in info command
+
+``Commands``
+Added sub all command to subscribe to all subscriptions, ex: ?sub me all, or ?sub all (will subscribe you to all possible channels)
+?unsub me all or ?unsub all works in similar fashion.
+
+**Unsub module**
+Added an unsub module, unsub commands work just like regular sub commands.
+
+``Other``
+Added some helper text wheb sub list command is called.
+Make snowflake command private. Was generally only used to test snowflake ID generation anyway.

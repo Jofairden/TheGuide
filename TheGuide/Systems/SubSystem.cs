@@ -31,6 +31,12 @@ namespace TheGuide.Systems
 			}
 		}
 
+		public async Task<GuideResult> Write(ulong guid)
+		{
+			var result = await SubSystem.CreateServerSub(guid, this);
+			return result;
+		}
+
 		public ulong GUID; // => guild ID
 		public Dictionary<ulong, ulong> Data; // key => channelID, value => roleID
 		public List<ulong> AdminRoles; // => roleID
@@ -60,6 +66,12 @@ namespace TheGuide.Systems
 			}
 		}
 
+		public async Task<GuideResult> Write(ulong guid, bool ignore = false )
+		{
+			var result = await SubSystem.CreateUserSub(guid, UID, this, ignore);
+			return result;
+		}
+
 		public string Name;
 		public ulong UID;
 		public List<ulong> SubRoles;
@@ -85,8 +97,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to maintain directories along with server.json files and uid.json files
 		/// </summary>
-		/// <param name="client"></param>
-		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
 		{
 			await Task.Run(async () =>
@@ -98,9 +108,7 @@ namespace TheGuide.Systems
 					var path = Path.Combine(rootDir, $"{guild.Id}");
 					Directory.CreateDirectory(path);
 					if (!File.Exists(Path.Combine(path, "server.json")))
-					{
 						await CreateServerSub(guild.Id, new SubServerJson { GUID = guild.Id });
-					}
 					await guild.DownloadUsersAsync();
 					foreach (var user in guild.Users)
 						await MaintainUser(guild.Id, user);
@@ -110,12 +118,13 @@ namespace TheGuide.Systems
 
 		public static async Task MaintainUser(ulong guid, IUser user)
 		{
-			var userJson = new SubUserJson
-							{
-								Name = user.GenFullName(),
-								UID = user.Id,
-								SubRoles = new List<ulong>()
-							};
+			var userJson =
+				new SubUserJson
+				{
+					Name = user.GenFullName(),
+					UID = user.Id,
+					SubRoles = new List<ulong>()
+				};
 
 			await CreateUserSub(guid, user.Id, userJson);
 		}
@@ -123,9 +132,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to write a server.json file
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <param name="input"></param>
-		/// <returns></returns>
 		public static async Task<GuideResult> CreateServerSub(ulong guid, SubServerJson input)
 		{
 			var path = Path.Combine(rootDir, $"{guid}", $"server.json");
@@ -141,11 +147,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to write a uid.json file
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <param name="uid"></param>
-		/// <param name="input"></param>
-		/// <param name="ignoreCheck"></param>
-		/// <returns></returns>
 		public static async Task<GuideResult> CreateUserSub(ulong guid, ulong uid, SubUserJson input, bool ignoreCheck = false)
 		{
 			await Task.Yield();
@@ -167,9 +168,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to delete a uid.json file
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <param name="uid"></param>
-		/// <returns></returns>
 		public static async Task<GuideResult> DeleteUserSub(ulong guid, ulong uid)
 		{
 			await Task.Yield();
@@ -185,8 +183,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to validate all uid.json files
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <returns></returns>
 		public static async Task<List<string>> ValidateSubs(ulong guid)
 		{
 			var count = new List<string>();
