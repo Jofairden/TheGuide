@@ -2,6 +2,7 @@
 ``Bugfixes``
 Fixed mod command not finding file sometimes
 Fixed missing newline in info command
+Fixed regular help command not clearing the last comma when listing a module's commands.
 
 ``Commands``
 Added sub all command to subscribe to all subscriptions, ex: ?sub me all, or ?sub all (will subscribe you to all possible channels)

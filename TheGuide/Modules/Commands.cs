@@ -549,7 +549,7 @@ namespace TheGuide.Modules
 							if (result.IsSuccess)
 								modules += $"{command.Name}, ";
 						}
-						modules.Truncate(2);
+						modules = modules.Truncate(2);
 					}
 				}
 
