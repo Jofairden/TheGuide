@@ -161,21 +161,21 @@ namespace TheGuide
 			},
 			null,
 			TimeSpan.FromSeconds(0),
-			TimeSpan.FromDays(0.5d));
+			TimeSpan.FromMinutes(15));
 
 			// Handler
 			handler = new CommandHandler();
 			await handler.Install(map);
 
-			await client.SetGameAsync("Terraria");
+			await client.SetGameAsync($"{CommandHandler.prefixChar}help");
 
 			await Task.Delay(-1);
 		}
 
-		private async Task Client_Log(LogMessage e)
-		{
-			await Console.Out.WriteLineAsync($"~{$"[{e.Severity}]",-10}{$"[{e.Source}]",-10}{$"[{e.Message}]",-10}~");
-		}
+		const int offset = -10;
+
+		private async Task Client_Log(LogMessage e) =>
+			await Console.Out.WriteLineAsync($"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~");
 
 		private async Task Client_LatencyUpdated(int i, int j)
 		{
