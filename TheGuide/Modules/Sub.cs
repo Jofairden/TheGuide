@@ -53,7 +53,7 @@ namespace TheGuide.Modules
 		[Command("me")]
 		[Summary("Unsub to to a channel or all channels")]
 		[Remarks("unsub me <channel> --OR-- unsub me all")]
-		public async Task Me([Remainder] string rem = null)
+		public async Task Me([Remainder] string rem = "")
 		{
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TryUnSubAll(Context.User);
@@ -63,10 +63,8 @@ namespace TheGuide.Modules
 
 		[Name("no-help")]
 		[Command("me")]
-		public async Task Me([Remainder] ITextChannel channel)
-		{
+		public async Task Me([Remainder] ITextChannel channel) =>
 			await TryUnsub(Context.User, channel);
-		}
 
 		[Command("list")]
 		[Summary("List channels")]
