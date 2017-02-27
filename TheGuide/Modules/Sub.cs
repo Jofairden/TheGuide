@@ -108,7 +108,7 @@ namespace TheGuide.Modules
 					roles.Add(role);
 			});
 			if (roles.Any())
-				await (user as SocketGuildUser).RemoveRolesAsync(roles);
+				await (user as SocketGuildUser).ChangeRolesAsync(remove: roles);
 
 			userJson.SubRoles.Clear();
 			await userJson.Write(guild.Id, true);
@@ -172,59 +172,73 @@ namespace TheGuide.Modules
 		[SubAdminAttr]
 		public async Task ClearSubRoles()
 		{
-			var guild = Context.Guild as SocketGuild;
-			var roles = new List<string>();
-			// loop roles
-			if (guild?.Roles != null)
-				foreach (var role in guild?.Roles)
-				{
-					//todo: config: configure prefix?
-					if (role.Name.StartsWith("sub-"))
-					{
-						// Remove from server data
-						var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-						serverJson.Data =
-							serverJson.Data
-							.Where(kvp => kvp.Value != role.Id)
-							.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-						await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
+			var count = await TryClearSubRoles();
 
-						// Clear from user data
-						foreach (var user in guild.Users)
-						{
-							var userJson = SubSystem.LoadSubUserJson(guild.Id, user.Id);
-							userJson.SubRoles = userJson.SubRoles.Where(r => r != role.Id).ToList();
-							await SubSystem.CreateUserSub(guild.Id, user.Id, userJson, true);
-						}
-						roles.Add($"**{role.Name}** ({role.Id})");
-						await role.DeleteAsync();
-					}
-				}
-			//reply
-			var msg = roles.Count > 0 ? $"Removed {roles.Count} roles:\n" : "No roles found.";
-			await ReplyAsync(roles.Count > 0 ? $"{msg}{string.Join("\n", roles).Cap(2000 - msg.Length)}" : msg);
+			await ReplyAsync(count > 0
+				? $"Cleared {count} role{(count > 1 ? "s" : "")}"
+				: $"No roles found to be cleared");
+		}
+
+		private async Task<int> TryClearSubRoles()
+		{
+			await Task.Yield();
+			var guild = Context.Guild as SocketGuild;
+			var serverJson = SubSystem.LoadSubServerJson(guild.Id);
+
+			// Get roles
+			var roles =
+				serverJson.Data
+					.Select(x =>
+						guild.GetRole(x.Value))
+					.Where(x =>
+						x != null)
+					.Concat(guild.Roles)
+					.Where(x =>
+						x.Name.StartsWith("sub-")
+						&& serverJson.Data.All(y => y.Value != x.Id))
+					.ToList();
+
+			roles.ForEach(async x =>
+				await x.DeleteAsync());
+
+			return roles.Count;
 		}
 
 		/// <summary>
 		/// Will add/remove a certain role as 'admin' for Subsystem to server data
 		/// </summary>
 		[Command("createadmin")]
+		[Summary("Will add/remove a certain role as 'admin' for Subsystem to server data")]
 		[Alias("makeadmin", "adminrole", "deleteadmin", "removeadmin", "deladmin", "remadmin", "admin")]
+		[Remarks("createadmin <role>\ncreateadmin @administrator")]
 		[SubAdminAttr]
-		public async Task CreateAdmin([Remainder] IRole role)
+		public async Task CreateAdmin([Remainder] IRole role = null)
 		{
-			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-			var msg = $"Role ``{role.Name}`` is no longer a 'SubSystem' admin.";
-			if (!serverJson.AdminRoles.Contains(role.Id))
+			if (role == null)
 			{
-				serverJson.AdminRoles.Add(role.Id);
-				msg = $"Role ``{role.Name}`` is now a 'SubSystem' admin.";
+				await service.ExecuteAsync(Context, $"help sub createadmin", map, MultiMatchHandling.Best);
+				return;
 			}
-			else
-				serverJson.AdminRoles.Remove(role.Id);
 
-			await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
-			await ReplyAsync(msg);
+			var serverJson = 
+				SubSystem.LoadSubServerJson(Context.Guild.Id);
+
+			var cond =
+				serverJson.AdminRoles.Contains(role.Id);
+			var msg = cond
+				? $"Role ``{role.Name}`` is no longer a 'SubSystem' admin"
+				: $"Role ``{role.Name}`` is now a 'SubSystem' admin";
+			if(cond)
+				serverJson.AdminRoles.Remove(role.Id);
+			else
+				serverJson.AdminRoles.Add(role.Id);
+
+			var result =
+				await serverJson.Write(Context.Guild.Id);
+
+			await ReplyAsync(result.IsSuccess
+				? msg
+				: result.ErrorReason);
 		}
 
 		/// <summary>
@@ -242,7 +256,6 @@ namespace TheGuide.Modules
 				await service.ExecuteAsync(Context, $"help sub delete", map, MultiMatchHandling.Best);
 				return;
 			}
-
 			await TryDelete(channel);
 		}
 
@@ -261,7 +274,6 @@ namespace TheGuide.Modules
 				await service.ExecuteAsync(Context, $"help sub delete", map, MultiMatchHandling.Best);
 				return;
 			}
-
 			await TryDelete(role);
 		}
 
@@ -269,85 +281,70 @@ namespace TheGuide.Modules
 		/// Tries to clear all subscriptions for guild
 		/// </summary>
 		[Command("clear")]
-		[Summary("Delete all subscriptions for guild")]
+		[Summary("Delete all subscription data for guild")]
 		[Remarks("clear")]
 		[SubAdminAttr]
 		public async Task Clear()
 		{
-			var oldJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-			if (oldJson.Data.Any())
-			{
-				// distinct select roles from data
-				var data =
-					oldJson.Data
-						.GroupBy(kvp => kvp.Value)
-						.Select(g => g.First())
-						.Select(kvp => kvp.Value);
+			var guild = Context.Guild as SocketGuild;
+			var serverJson = SubSystem.LoadSubServerJson(guild.Id);
 
-				var guild = Context.Guild as SocketGuild;
-				if (guild != null)
-				{
-					// guild roles found from json data
-					var groles =
-						guild.Roles
-						.Where(r => data.Contains(r.Id))
+			// Get roles
+			var roles =
+				serverJson.Data
+					.Select(x =>
+						guild.GetRole(x.Value))
+					.Where(x =>
+						x != null);
+
+			// Get channels
+			var channels =
+				serverJson.Data
+					.Select(x =>
+						guild.GetTextChannel(x.Key))
+					.Where(x =>
+						x != null)
+					.ToList();
+
+			// Reset channel perms
+			channels.ForEach(async x =>
+			{
+				var rolePerms =
+					new OverwritePermissions(readMessages: PermValue.Allow);
+				await x.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
+			});
+
+			// Reset user data
+			await guild.DownloadUsersAsync();
+			foreach (var user in guild.Users)
+			{
+				var userJson = 
+					SubSystem.LoadSubUserJson(guild.Id, user.Id);
+
+				// Clear json data
+				userJson.SubRoles.Clear();
+				await userJson.Write(guild.Id, true);
+
+				// Get user sub roles
+				var compliantRoles =
+					user.Roles
+						.Where(x =>
+							roles.Contains(x))
 						.ToArray();
 
-					await guild.DownloadUsersAsync();
-					// tries to remove roles from users
-					foreach (var user in guild.Users)
-					{
-						var roles =
-							user.Roles
-								.Where(r =>
-									groles.Contains(r)).ToArray();
-
-						if (roles.Any())
-							await user.RemoveRolesAsync(roles);
-
-						// reset user data
-						await SubSystem.CreateUserSub(
-							Context.Guild.Id,
-							user.Id,
-							new SubUserJson()
-							{
-								Name = user.GenFullName(),
-								UID = user.Id,
-								SubRoles = new List<ulong>()
-
-							},
-							true);
-					}
-
-					//todo: config: remove roles from server upon clear?
-					//remove roles
-					if (true) // true/false config
-						foreach (var socketRole in groles)
-							await socketRole.DeleteAsync();
-				}
-			}
-			var oldSubs =
-				oldJson.Data
-					.Select(x =>
-						$"**{(Context.Guild as SocketGuild)?.TextChannels.FirstOrDefault(c => c.Id == x.Key).Name ?? "null"}**: {Context.Guild.GetRole(x.Value)?.Name ?? "null"}");
-
-			// Reset server data
-			await SubSystem.CreateServerSub(
-				Context.Guild.Id,
-				new SubServerJson()
-				{
-					GUID = Context.Guild.Id,
-					AdminRoles = oldJson.AdminRoles
-				});
-
-			var msg = $"No subscriptions removed from server {Context.Guild.Name}";
-			if (oldJson.Data.Count > 0)
-			{
-				msg = $"Removed {oldJson.Data.Count} subscription{(oldJson.Data.Count > 1 ? "s" : "")} from server:\n\n";
-				msg += string.Join("\n", oldSubs).Cap(2000 - msg.Length);
+				// Remove roles
+				if (compliantRoles.Any())
+					await user.ChangeRolesAsync(remove: compliantRoles);
 			}
 
-			await ReplyAsync(msg);
+
+			// Clear server data
+			serverJson.Data.Clear();
+			await serverJson.Write(guild.Id);
+
+			await TryClearSubRoles();
+
+			await ReplyAsync($"Cleared guild subscription data");
 		}
 
 		[Command("all")]
@@ -503,20 +500,7 @@ namespace TheGuide.Modules
 		[SubAdminAttr]
 		public async Task Create(ITextChannel channel, IRole role)
 		{
-			// find sub-role, not found => make it
-			var roleName = $"sub-{channel.Name}";
-			var findRole = Context.Guild.Roles.FirstOrDefault(r => string.Equals(roleName, r.Name, StringComparison.CurrentCultureIgnoreCase));
-			if (findRole == null)
-			{
-				findRole = await Context.Guild.CreateRoleAsync(roleName);
-				var rolePerms = new OverwritePermissions(readMessages: PermValue.Allow, readMessageHistory: PermValue.Allow);
-				await channel.AddPermissionOverwriteAsync(findRole, rolePerms);
-				rolePerms = new OverwritePermissions(readMessages: PermValue.Deny);
-				await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
-				await ReplyAsync($"Since no role named ``{roleName}`` was found, I created one with read permission for channel {channel.Mention}");
-			}
-
-			await TryCreate(channel, findRole);
+			await TryCreate(channel, role);
 		}
 
 		/// <summary>
@@ -537,8 +521,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to create a subscription for channel
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		[Command("create")]
 		[Summary("Create a subscription, finds any channel/role by mention, name or ID")]
 		[Remarks("create <channel>\ncreate #github")]
@@ -546,15 +528,20 @@ namespace TheGuide.Modules
 		public async Task Create(ITextChannel channel)
 		{
 			// find sub-role, not found => make it
+			//todo: config: role prefix
 			var roleName = $"sub-{channel.Name}";
-			var role = Context.Guild.Roles.FirstOrDefault(r => string.Equals(roleName, r.Name, StringComparison.CurrentCultureIgnoreCase));
+			var role =
+				Context.Guild.Roles.
+					FirstOrDefault(r =>
+						string.Equals(roleName, r.Name, StringComparison.CurrentCultureIgnoreCase));
+
 			if (role == null)
 			{
-				role = await Context.Guild.CreateRoleAsync(roleName);
-				var rolePerms = new OverwritePermissions(readMessages: PermValue.Allow, readMessageHistory: PermValue.Allow);
+				role = 
+					await Context.Guild.CreateRoleAsync(roleName);
+				var rolePerms = 
+					new OverwritePermissions(readMessages: PermValue.Allow, readMessageHistory: PermValue.Allow);
 				await channel.AddPermissionOverwriteAsync(role, rolePerms);
-				rolePerms = new OverwritePermissions(readMessages: PermValue.Deny);
-				await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
 				await ReplyAsync($"Since no role named ``{roleName}`` was found, I created one with read permission for channel {channel.Mention}");
 			}
 
@@ -564,149 +551,273 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to delete subscriptions connected to channel
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		private async Task TryDelete(ITextChannel channel)
 		{
-			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-			var keys = serverJson.Data.Where(x => x.Key == channel.Id).Select(i => i.Key).ToArray();
-			if (keys.Length <= 0)
+			var guild = Context.Guild as SocketGuild;
+			var serverJson =
+				SubSystem.LoadSubServerJson(guild.Id);
+
+			var data =
+				serverJson.Data
+					.Where(x =>
+						x.Key == channel.Id)
+					.ToDictionary(x => x.Key, x => x.Value);
+
+			if (!data.Any())
 			{
-				await ReplyAsync($"Could not find any subscription for {channel.Mention}");
+				await ReplyAsync($"Could not find any subscriptions for {channel.Mention}");
 				return;
 			}
-			foreach (ulong key in keys)
-				serverJson.Data.Remove(key);
 
-			await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
-			await ReplyAsync($"Removed {keys.Length} subscription{(keys.Length > 0 ? "s" : "")} for {channel.Mention}");
+			await guild.DownloadUsersAsync();
+			foreach (var user in guild.Users)
+			{
+				var userJson =
+					SubSystem.LoadSubUserJson(guild.Id, user.Id);
+
+				var roleIds = data.Select(x => x.Value);
+				if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+				{
+					userJson.SubRoles =
+						userJson.SubRoles
+							.Except(data.Select(x => x.Value))
+							.ToList();
+
+					await userJson.Write(guild.Id, true);
+
+					var remRoles =
+						data
+							.Where(x =>
+								user.Guild.GetRole(x.Value) != null)
+							.Select(x =>
+								user.Guild.GetRole(x.Value))
+							.ToArray();
+
+					if (remRoles.Any())
+						await user.ChangeRolesAsync(remove: remRoles);
+				}
+			}
+
+			serverJson.Data =
+				serverJson.Data
+					.Where(kvp => !data.ContainsKey(kvp.Key))
+					.ToDictionary(x => x.Key, x => x.Value);
+
+			var rolePerms =
+					new OverwritePermissions(readMessages: PermValue.Allow);
+			await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
+
+			var result = await serverJson.Write(Context.Guild.Id);
+			await ReplyAsync(result.IsSuccess
+				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated {channel.Mention}"
+				: result.ErrorReason);
 		}
 
 		/// <summary>
 		/// Tries to delete subscriptions connected to role
 		/// </summary>
-		/// <param name="role"></param>
-		/// <returns></returns>
 		private async Task TryDelete(IRole role)
 		{
-			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-			var keys = serverJson.Data.Where(x => x.Value == role.Id).Select(i => i.Key).ToArray();
-			if (keys.Length <= 0)
+			var guild = Context.Guild as SocketGuild;
+			var serverJson = 
+				SubSystem.LoadSubServerJson(guild.Id);
+
+			var data =
+				serverJson.Data
+					.Where(x =>
+						x.Value == role.Id)
+					.ToDictionary(x => x.Key, x => x.Value);
+
+			if (!data.Any())
 			{
 				await ReplyAsync($"Could not find any subscriptions for role ``{role.Name}``");
 				return;
 			}
-			foreach (ulong key in keys)
-				serverJson.Data.Remove(key);
 
-			await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
-			await ReplyAsync($"Removed {keys.Length} subscription{(keys.Length > 0 ? "s" : "")} for role ``{role.Name}``");
+			await guild.DownloadUsersAsync();
+			foreach (var user in guild.Users)
+			{
+				var userJson = 
+					SubSystem.LoadSubUserJson(guild.Id, user.Id);
+
+				var roleIds = data.Select(x => x.Value);
+				if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+				{
+					userJson.SubRoles =
+						userJson.SubRoles
+							.Except(data.Select(x => x.Value))
+							.ToList();
+
+					await userJson.Write(guild.Id, true);
+
+					var remRoles =
+						data
+							.Where(x =>
+								user.Guild.GetRole(x.Value) != null)
+							.Select(x =>
+								user.Guild.GetRole(x.Value))
+							.ToArray();
+
+					if (remRoles.Any())
+						await user.ChangeRolesAsync(remove: remRoles);
+				}
+			}
+
+			serverJson.Data =
+				serverJson.Data
+					.Where(kvp => !data.ContainsKey(kvp.Key))
+					.ToDictionary(x => x.Key, x => x.Value);
+
+			var channels = data
+					.Select(x => x.Key)
+					.Where(x => guild.GetTextChannel(x) != null)
+					.Select(x => guild.GetTextChannel(x))
+					.ToList();
+
+			channels.ForEach(async x =>
+			{
+				var rolePerms =
+					new OverwritePermissions(readMessages: PermValue.Allow);
+				await x.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
+			});
+
+			var result = await serverJson.Write(Context.Guild.Id);
+			await ReplyAsync(result.IsSuccess 
+				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated with role ``{role.Name}``"
+				: result.ErrorReason);
 		}
 
 		/// <summary>
 		/// Attempts to create a subscription for a channel
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <param name="role"></param>
-		/// <returns></returns>
 		private async Task TryCreate(ITextChannel channel, IRole role)
 		{
-			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-			if (serverJson.Data.ContainsKey(channel.Id))
+			var serverJson = 
+				SubSystem.LoadSubServerJson(Context.Guild.Id);
+
+			if (serverJson.Data.Any(x => x.Value == role.Id))
 			{
-				await ReplyAsync($"{channel.Mention} already has a subcription using role ``{Context.Guild.GetRole(serverJson.Data[channel.Id]).Name}``");
+				await ReplyAsync($"There already exists a subscription using role ``{role.Name}``");
 				return;
 			}
+
+			if (serverJson.Data.ContainsKey(channel.Id))
+			{
+				await ReplyAsync($"{channel.Mention} already has a subscription using role ``{Context.Guild.GetRole(serverJson.Data[channel.Id]).Name}``");
+				return;
+			}
+
+			var rolePerms =
+					new OverwritePermissions(readMessages: PermValue.Deny);
+			await channel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, rolePerms);
+
 			serverJson.Data.Add(channel.Id, role.Id);
-			await SubSystem.CreateServerSub(Context.Guild.Id, serverJson);
-			await ReplyAsync($"Created subscription for {channel.Mention} using role ``{role.Name}``");
+			var result =
+				await serverJson.Write(Context.Guild.Id);
+
+			await ReplyAsync(result.IsSuccess 
+				? $"Created subscription for {channel.Mention} using role ``{role.Name}``"
+				: result.ErrorReason);
 		}
 
+		/// <summary>
+		/// Subscribes to any missing channel
+		/// </summary>
 		private async Task TrySubAll(IUser user)
 		{
-			var guild = Context.Guild as SocketGuild;
-			var serverJson = SubSystem.LoadSubServerJson(guild.Id);
-			var userJson = SubSystem.LoadSubUserJson(guild.Id, user.Id);
-			var newSubs = serverJson.Data.Where(x => !userJson.SubRoles.Contains(x.Value)).ToArray();
+			var guild = 
+				Context.Guild as SocketGuild;
+			var serverJson = 
+				SubSystem.LoadSubServerJson(guild.Id);
+			var userJson =
+				SubSystem.LoadSubUserJson(guild.Id, user.Id);
+			var newSubs =
+				serverJson.Data
+					.Where(x =>
+						!userJson.SubRoles
+							.Contains(x.Value))
+					.ToArray();
+			var ufull = 
+				$"``{user.GenFullName()}``";
 
-			// need an enumerable due to lib bug
-			List<IRole> roles = new List<IRole>();
-			List<string> rolesTxt = new List<string>();
 
 			if (newSubs.Any())
 			{
-				for (int i = 0; i < newSubs.Length; i++)
+				// need an enumerable due to lib bug
+				var roles =
+					newSubs
+						.Where(x =>
+							guild.GetRole(x.Value) != null
+							&& !(user as SocketGuildUser).Roles.Any(r => r.Id == x.Value))
+						.Select(x =>
+							guild.GetRole(x.Value))
+						.ToList();
+
+				if (roles.Any())
 				{
-					var kvp = newSubs[i];
-					var channel = guild.TextChannels.FirstOrDefault(c => c.Id == kvp.Key);
-					var roleID = serverJson.Data[channel.Id];
-					var role = Context.Guild.GetRole(roleID);
-					rolesTxt.Add($"**{channel.Name}**: {role.Name}");
-					roles.Add(role);
-					if (i == newSubs.Length - 1)
-					{
-						await (user as IGuildUser).AddRolesAsync(roles.AsEnumerable());
-						roles.ForEach(x =>
-							userJson.SubRoles.Add(x.Id));
+					await (user as IGuildUser).ChangeRolesAsync(add: roles.AsEnumerable());
+					userJson.SubRoles =
+						userJson.SubRoles
+						.Union(roles.Select(x => x.Id))
+						.ToList();
+
+					var result = 
 						await userJson.Write(guild.Id, true);
-						await ReplyAsync($"Subscribed ``{user.GenFullName()}`` to {roles.Count} new channels!" +
-										"\n\n" +
-										string.Join("\n", rolesTxt));
-						return;
-					}
+
+					await ReplyAsync(result.IsSuccess
+						? $"Subscribed {ufull} to all channels"
+						: result.ErrorReason);
+					return;
 				}
 			}
-			await ReplyAsync($"No subscriptions available for ``{user.GenFullName()}``");
+			await ReplyAsync($"No subscriptions available for {ufull}");
 		}
 
 		/// <summary>
 		/// Attempts to sub a user to a certain channel
 		/// </summary>
-		/// <param name="user"></param>
-		/// <param name="channel"></param>
-		/// <returns></returns>
 		private async Task TrySub(IUser user, ITextChannel channel)
 		{
-			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
-
+			var guild = 
+				Context.Guild as SocketGuild;
+			var userJson = 
+				SubSystem.LoadSubUserJson(guild.Id, user.Id);
+			var serverJson = 
+				SubSystem.LoadSubServerJson(guild.Id);
+			var ufull = 
+				$"``{user.GenFullName()}``";
+			
 			// No subscription found
 			if (!serverJson.Data.ContainsKey(channel.Id))
 			{
-				await ReplyAsync($"Unable for ``{user.GenFullName()}`` to subscribe to {channel.Mention} because no subscription exists.");
+				await ReplyAsync($"No subscription for {channel.Mention} found");
 				return;
 			}
 
-			// No server role found
-			if (Context.Guild.GetRole(serverJson.Data[channel.Id]) == null)
-			{
-				await ReplyAsync($"Unable to find the role associated with subscribing to {channel.Mention}, contact an administrator.");
-				return;
-			}
-
-			GuideResult result;
-			var userJson = SubSystem.LoadSubUserJson(Context.Guild.Id, user.Id);
 			var roleID = serverJson.Data[channel.Id];
-			var guildRole = Context.Guild.GetRole(roleID);
+			var role = guild.GetRole(roleID);
 
-			// Unsub
-			if ((user as IGuildUser).RoleIds.Any(r => r == roleID))
+			if (userJson.SubRoles.Contains(roleID))
 			{
-				await (user as IGuildUser).RemoveRolesAsync(guildRole);
-				if (userJson.SubRoles.Contains(roleID))
-					userJson.SubRoles.Remove(roleID);
-
-				result = await SubSystem.CreateUserSub(Context.Guild.Id, user.Id, userJson, true);
-				await ReplyAsync(result.IsSuccess ? $"Unsubscribed ``{user.GenFullName()}`` from {channel.Mention}" : result.ErrorReason);
+				await ReplyAsync($"{ufull} is already subscribed to {channel.Mention}");
+				return;
+			}
+			// No server role found
+			if (role == null)
+			{
+				await ReplyAsync($"No role of subscription for {channel.Mention} found, contact an administrator");
 				return;
 			}
 
 			// Sub to channel
-			await (user as IGuildUser).AddRolesAsync(guildRole);
-			if (!userJson.SubRoles.Contains(roleID))
-				userJson.SubRoles.Add(roleID);
+			var roles = new List<IRole> {role};
+			await (user as IGuildUser).ChangeRolesAsync(add: roles);
+			userJson.SubRoles = userJson.SubRoles.Union(roles.Select(x => x.Id)).ToList();
 
-			result = await SubSystem.CreateUserSub(Context.Guild.Id, user.Id, userJson, true);
-			await ReplyAsync(result.IsSuccess ? $"Subscribed ``{user.GenFullName()}`` to {channel.Mention}" : result.ErrorReason);
+			var result = await userJson.Write(guild.Id, true);
+			await ReplyAsync(result.IsSuccess 
+				? $"Subscribed ``{user.GenFullName()}`` to {channel.Mention}" 
+				: result.ErrorReason);
 		}
 	}
 }

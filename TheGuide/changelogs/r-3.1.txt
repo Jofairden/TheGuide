@@ -2,15 +2,21 @@
 ``Bugfixes``
 Fixed mod command not finding file sometimes
 Fixed missing newline in info command
-Fixed regular help command not clearing the last comma when listing a module's commands.
+Fixed regular help command not clearing the last comma when listing a module's commands
+Fixed some subscription system bugs :D
 
 ``Commands``
 Added sub all command to subscribe to all subscriptions, ex: ?sub me all, or ?sub all (will subscribe you to all possible channels)
-?unsub me all or ?unsub all works in similar fashion.
+?unsub me all or ?unsub all works in similar fashion
+Also added a few more sub/unsub command overloads
 
 **Unsub module**
-Added an unsub module, unsub commands work just like regular sub commands.
+Added an unsub module, unsub commands work just like regular sub commands
+
+``Code``
+Rewritten some code, especially subscription system code
 
 ``Other``
 Added some helper text wheb sub list command is called.
-Make snowflake command private. Was generally only used to test snowflake ID generation anyway.
+Made snowflake command private, was generally only used to test snowflake ID generation anyway
+Some spelling errors fixed
