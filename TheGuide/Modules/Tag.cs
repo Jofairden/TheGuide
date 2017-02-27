@@ -30,8 +30,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will validate existing tags
 		/// </summary>
-		/// <param name="rem"></param>
-		/// <returns></returns>
 		[Command("validate")]
 		[Summary("Validates all existing tags for this server")]
 		[Remarks("validate")]
@@ -52,9 +50,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will create a new tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="input"></param>
-		/// <returns></returns>
 		[Command("create")]
 		[Alias("make")]
 		[Summary("Creates a tag")]
@@ -84,8 +79,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will delete a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("delete")]
 		[Alias("remove")]
 		[Summary("deletes a tag")]
@@ -104,9 +97,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will edit a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="input"></param>
-		/// <returns></returns>
 		[Command("edit")]
 		[Alias("change", "alter")]
 		[Summary("Changes the content of a tag")]
@@ -134,8 +124,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will get a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("get")]
 		[Summary("Gets a tag")]
 		[Remarks("get <name>\nget ExampleTag")]
@@ -170,8 +158,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will list tags
 		/// </summary>
-		/// <param name="user"></param>
-		/// <returns></returns>
 		[Command("list")]
 		[Summary("Lists all tags or tags owned by specified user. The command will recognize a user by username, discriminator, id or mention.")]
 		[Remarks("list [user]\nlist --OR-- list Jofairden")]
@@ -197,21 +183,25 @@ namespace TheGuide.Modules
 					content = content.Substring(0, index);
 			}
 
-			await ReplyAsync($"**{header}**" +
-							$"\n\n" +
-							$"{content}");
+			await ReplyAsync(($"**{header}**" +
+							$"\n" +
+							$"{content}").Cap(2000));
 		}
 
 		/// <summary>
 		/// Will list info of a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("info")]
 		[Summary("Display info of a tag")]
 		[Remarks("info <name>\ninfo SomeTag")]
-		public async Task Info(string name)
+		public async Task Info(string name = null)
 		{
+			if (name == null)
+			{
+				await service.ExecuteAsync(Context, $"help module:tag command:info", map);
+				return;
+			}
+
 			TagJson tag = TagSystem.getTag(Context.Guild.Id, name);
 			if (tag == null)
 			{
@@ -237,9 +227,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will try to claim a tag
 		/// </summary>
-		/// <param name="user"></param>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("claim")]
 		[Summary("Attempt to claim a command for yourself, or someone else. To give away a tag you must have a claim on it, or have administrator privileges. The command will recognize a user by username, discriminator, id or mention.")]
 		[Remarks("claim <tag> <user>\n?claim SomeTag Jofairden")]
@@ -249,12 +236,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will try to claim a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="user"></param>
-		/// <returns></returns>
+		[Name("no-help")]
 		[Command("claim")]
-		[Summary("Attempt to claim a command for yourself, or someone else. To give away a tag you must have a claim on it, or have administrator privileges. The command will recognize a user by username, discriminator, id or mention.")]
-		[Remarks("claim <tag> <user>\n?claim SomeTag Jofairden")]
 		public async Task Claim(string name, [Remainder] IUser user = null)
 		{
 			TagJson tag = TagSystem.getTag(Context.Guild.Id, name);
@@ -298,9 +281,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will try to unclaim a tag
 		/// </summary>
-		/// <param name="user"></param>
-		/// <param name="name"></param>
-		/// <returns></returns>
 		[Command("unclaim")]
 		[Summary("Attempt to unclaim a command for yourself, or someone else. To unclaim a tag you must own it, or have administrator privileges. The command will recognize a user by username, discriminator, id or mention.")]
 		[Remarks("unclaim <tag>\n?unclaim SomeTag")]
@@ -310,12 +290,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Will try to unclaim a tag
 		/// </summary>
-		/// <param name="name"></param>
-		/// <param name="user"></param>
-		/// <returns></returns>
+		[Name("no-help")]
 		[Command("unclaim")]
-		[Summary("Attempt to unclaim a command for yourself, or someone else. To unclaim a tag you must own it, or have administrator privileges. The command will recognize a user by username, discriminator, id or mention.")]
-		[Remarks("unclaim <tag>\n?unclaim SomeTag")]
 		public async Task Unclaim(string name, [Remainder] IUser user = null)
 		{
 			TagJson tag = TagSystem.getTag(Context.Guild.Id, name);

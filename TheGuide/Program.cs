@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -95,44 +96,58 @@ namespace TheGuide
 
 			// Connection
 			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.TestToken);
+			await client.LoginAsync(TokenType.Bot, Token.BotToken);
 			await client.StartAsync();
-			await Task.Delay(2000); // Give some time to connect
+			await Task.Delay(5000); // Give some time to connect
 
 			// After connection
-
-			client.Connected += async ()=>
+			client.LatencyUpdated += Client_LatencyUpdated;
+			client.GuildMemberUpdated += async (i, j) =>
 			{
-				await Client_LatencyUpdated(client.Latency, client.Latency);
-				client.LatencyUpdated += Client_LatencyUpdated;
-				client.GuildMemberUpdated += async (i, j) =>
-				{
-					await SubSystem.MaintainUser(j.Guild.Id, j);
-				};
-				client.UserJoined += async (u) =>
-				{
-					await SubSystem.MaintainUser(u.Guild.Id, u);
-					var ch = await u.CreateDMChannelAsync();
-					await ch.SendMessageAsync(
-						$"Hey there {u.Username}!\n" +
-						$"I see you just joined our server, how lovely!\n" +
-						$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
-						$"\n" +
-						$"Our server uses a channel subscription system!\n" +
-						$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
-						$"\n" +
-						$"Have a nice stay! :wave:");
-				};
-				client.UserLeft += async (u) =>
-				{
-					var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
-					if (!result.IsSuccess)
-						await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
-				};
+				await SubSystem.MaintainUser(j.Guild.Id, j);
+			};
+			client.UserJoined += async (u) =>
+			{
+				await SubSystem.MaintainUser(u.Guild.Id, u);
+				var ch = await u.CreateDMChannelAsync();
+				await ch.SendMessageAsync(
+					$"Hey there {u.Username}!\n" +
+					$"I see you just joined our server, how lovely!\n" +
+					$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
+					$"\n" +
+					$"Our server uses a channel subscription system!\n" +
+					$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
+					$"\n" +
+					$"Have a nice stay! :wave:");
+			};
+			client.UserLeft += async (u) =>
+			{
+				var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
+				if (!result.IsSuccess)
+					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+			};
 
-				// Maintain sub system when user joins/leave
-				// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
-				var timer = new Timer(async s =>
+			// Map
+			var map = new DependencyMap();
+			map.Add(client);
+			map.Add(cooldowns);
+
+			//await JsonSystem.Setup(client);
+			await Client_LatencyUpdated(client.Latency, client.Latency);
+
+
+			// Handler
+			handler = new CommandHandler();
+			await handler.Install(map);
+
+			await client.SetGameAsync($"{CommandHandler.prefixChar}help");
+			// Create tag directory for new server
+			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
+
+
+			// Maintain sub system when user joins / leave
+			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
+			var timer = new Timer(async s =>
 				{
 					int tries = 5;
 					bool success = false;
@@ -153,26 +168,8 @@ namespace TheGuide
 					}
 				},
 				null,
-				TimeSpan.FromSeconds(1),
+				TimeSpan.FromSeconds(5),
 				TimeSpan.FromMinutes(15));
-			};
-
-			// Create tag directory for new server
-			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
-
-			// Map
-			var map = new DependencyMap();
-			map.Add(client);
-			map.Add(cooldowns);
-
-			//await JsonSystem.Setup(client);
-
-
-			// Handler
-			handler = new CommandHandler();
-			await handler.Install(map);
-
-			await client.SetGameAsync($"{CommandHandler.prefixChar}help");
 
 			await Task.Delay(-1);
 		}

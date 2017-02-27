@@ -9,6 +9,7 @@ Fixed some subscription system bugs :D
 Added sub all command to subscribe to all subscriptions, ex: ?sub me all, or ?sub all (will subscribe you to all possible channels)
 ?unsub me all or ?unsub all works in similar fashion
 Also added a few more sub/unsub command overloads
+Remade the help command into help v3.0
 
 **Unsub module**
 Added an unsub module, unsub commands work just like regular sub commands
@@ -20,3 +21,5 @@ Rewritten some code, especially subscription system code
 Added some helper text wheb sub list command is called.
 Made snowflake command private, was generally only used to test snowflake ID generation anyway
 Some spelling errors fixed
+Improved formatting on the mod command: download count is formatted by thousands, update timestamp in 'dddd, MMMMM d, yyyy h:mm:ss tt' with en-US culture, added widget url
+Made sure a lot of outputs don't exceed Discord's cap (2000 chars)

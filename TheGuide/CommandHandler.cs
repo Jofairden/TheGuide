@@ -42,7 +42,9 @@ namespace TheGuide
 			int argPos = 0;
 
 			// Checks for when command should not be ran.
-			if (message == null
+			if (arg.Author.IsBot
+				|| arg.IsWebhook
+				|| message == null
 				|| !message.Content.Except("?").Any()
 				|| message.Content.Trim().Length <= 1
 				|| message.Content.Trim()[1] == '?'

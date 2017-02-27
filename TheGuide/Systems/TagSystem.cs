@@ -91,25 +91,24 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Maintains content
 		/// </summary>
-		/// <param name="client"></param>
-		/// <returns></returns>
 		public static async Task Maintain(IDiscordClient client)
 		{
 			await Task.Run(() =>
 			{
 				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
+
+				foreach (var guild in (client as DiscordSocketClient).Guilds)
+				{
+					var path = Path.Combine(rootDir, $"{guild.Id}");
+					Directory.CreateDirectory(path);
+				}
 			});
 		}
 
 		/// <summary>
 		/// Creates a tag
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <param name="name"></param>
-		/// <param name="input"></param>
-		/// <param name="check"></param>
-		/// <returns></returns>
 		public static async Task<GuideResult> CreateTag(ulong guid, string name, TagJson input, bool check = true)
 		{
 			await Task.Yield();
@@ -122,9 +121,6 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Writes a tag
 		/// </summary>
-		/// <param name="guid"></param>
-		/// <param name="input"></param>
-		/// <returns></returns>
 		public static async Task<GuideResult> WriteTag(ulong guid, TagJson input)
 		{
 			await Task.Yield();

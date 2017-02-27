@@ -51,7 +51,7 @@ namespace TheGuide.Modules
 		}
 
 		[Command("me")]
-		[Summary("Unsub to to a channel or all channels")]
+		[Summary("Unsub to a channel or all channels")]
 		[Remarks("unsub me <channel> --OR-- unsub me all")]
 		public async Task Me([Remainder] string rem = "")
 		{
@@ -67,20 +67,19 @@ namespace TheGuide.Modules
 			await TryUnsub(Context.User, channel);
 
 		[Command("list")]
-		[Summary("List channels")]
-		[Remarks("list [user]")]
+		[Summary("Lists all existing subscriptions of server or specified user")]
+		[Remarks("list [user]\nlist --OR-- list Jofairden")]
 		public async Task List([Remainder] IUser user = null) =>
 			await service.ExecuteAsync(Context, $"sub list {($"{user?.Id}" ?? "")}");
 
 		[Command("all")]
-		[Summary("Unsub to all channels")]
+		[Summary("Unsubscribe yourself to all channels")]
 		[Remarks("sub all")]
 		public async Task All([Remainder] string rem = null) =>
 			await TryUnSubAll(Context.User);
 
+		[Name("no-help")]
 		[Command("all")]
-		[Summary("Unsub a user to all channels")]
-		[Remarks("sub all")]
 		[SubAdminAttr]
 		public async Task All([Remainder]IUser user) =>
 			await TryUnSubAll(user);
@@ -244,7 +243,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Command("delete")]
 		[Alias("remove")]
-		[Summary("Delete a subscription of a channel")]
+		[Summary("Delete a subscription of a channel or subscriptions linked to role")]
 		[Remarks("delete <channel>\ndelete #github")]
 		[SubAdminAttr]
 		public async Task Delete([Remainder]ITextChannel channel = null)
@@ -260,10 +259,9 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to delete a subscription of a role
 		/// </summary>
+		[Name("no-help")]
 		[Command("delete")]
 		[Alias("remove")]
-		[Summary("Delete a subscription of a channel linked to role")]
-		[Remarks("delete <role>\ndelete @sub-github")]
 		[SubAdminAttr]
 		public async Task Delete([Remainder]IRole role = null)
 		{
@@ -346,14 +344,13 @@ namespace TheGuide.Modules
 		}
 
 		[Command("all")]
-		[Summary("Sub to all channels")]
+		[Summary("Subscribe yourself to all channels")]
 		[Remarks("sub all")]
 		public async Task All([Remainder] string rem = null) =>
 			await TrySubAll(Context.User);
 
+		[Name("no-help")]
 		[Command("all")]
-		[Summary("Sub a user to all channels")]
-		[Remarks("sub all")]
 		[SubAdminAttr]
 		public async Task All([Remainder]IUser user) =>
 			await TrySubAll(user);
@@ -363,8 +360,6 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command, Priority(10)]
-		[Summary("Sub yourself to a certain channel")]
-		[Remarks("sub\nsub #github -- OR -- sub github -- OR -- sub \\#github")]
 		public async Task SubMe([Remainder] ITextChannel channel) =>
 			await TrySub(Context.User, channel);
 
@@ -373,16 +368,12 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command, Priority(10)]
-		[Summary("Sub a user to a certain channel")]
-		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
 		[SubAdminAttr]
 		public async Task SubUser(IUser user, [Remainder] ITextChannel channel) =>
 			await TrySub(user, channel);
 
 		[Name("no-help")]
 		[Command, Priority(10)]
-		[Summary("Sub a user to a certain channel")]
-		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
 		[SubAdminAttr]
 		public async Task SubUser(IUser user, [Remainder] string rem)
 		{
@@ -395,13 +386,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Self command, channel + user parameter
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <param name="user"></param>
-		/// <returns></returns>
 		[Name("no-help")]
 		[Command, Priority(10)]
-		[Summary("Sub a user to a certain channel")]
-		[Remarks("sub <user> <channel>\nsub Jofairden #github")]
 		[SubAdminAttr]
 		public async Task SubUser(ITextChannel channel, [Remainder] IUser user) =>
 			await TrySub(user, channel);
@@ -419,7 +405,6 @@ namespace TheGuide.Modules
 
 		[Name("no-help")]
 		[Command("me")]
-		[Summary("Sub yourself to all channels")]
 		public async Task Me([Remainder] string channel)
 		{
 			if (channel.RemoveWhitespace().ToLower() == "all")
@@ -431,9 +416,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to list all existing subscriptions
 		/// </summary>
-		/// <returns></returns>
 		[Command("list")]
-		[Summary("Lists all subscriptions available in the server.")]
+		[Summary("Lists all subscriptions available in the server or of specified user.")]
 		[Remarks("list")]
 		public async Task List()
 		{
@@ -455,14 +439,25 @@ namespace TheGuide.Modules
 				: msg + extra);
 		}
 
+
 		/// <summary>
 		/// Tries to list all subscriptions for specified user
 		/// </summary>
-		/// <param name="user"></param>
-		/// <returns></returns>
+		[Name("no-help")]
 		[Command("list")]
-		[Summary("Lists all subscriptions from specified user.")]
-		[Remarks("list")]
+		public async Task List([Remainder] string user)
+		{
+			if (user.RemoveWhitespace().ToLower() == "me")
+				await List(Context.User);
+			else
+				await service.ExecuteAsync(Context, "help module:sub command:list", map);
+		}
+
+		/// <summary>
+		/// Tries to list all subscriptions for specified user
+		/// </summary>
+		[Name("no-help")]
+		[Command("list")]
 		public async Task List([Remainder] IUser user)
 		{
 			if (!SubSystem.SubUserExists(Context.Guild.Id, user.Id))
@@ -491,9 +486,6 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to create a subscription for channel with role
 		/// </summary>
-		/// <param name="channel"></param>
-		/// <param name="role"></param>
-		/// <returns></returns>
 		[Command("create")]
 		[Summary("Create a subscription, finds any channel/role by mention, name or ID")]
 		[Remarks("create <channel> <role>\ncreate #github @sub-github")]
@@ -506,12 +498,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to create a subscription for channel with role
 		/// </summary>
-		/// <param name="role"></param>
-		/// <param name="channel"></param>
-		/// <returns></returns>
+		[Name("no-help")]
 		[Command("create")]
-		[Summary("Create a subscription, finds any channel/role by mention, name or ID")]
-		[Remarks("create <role> <channel>\ncreate @sub-github #github")]
 		[SubAdminAttr]
 		public async Task Create(IRole role, ITextChannel channel)
 		{
@@ -521,9 +509,8 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Tries to create a subscription for channel
 		/// </summary>
+		[Name("no-help")]
 		[Command("create")]
-		[Summary("Create a subscription, finds any channel/role by mention, name or ID")]
-		[Remarks("create <channel>\ncreate #github")]
 		[SubAdminAttr]
 		public async Task Create(ITextChannel channel)
 		{
