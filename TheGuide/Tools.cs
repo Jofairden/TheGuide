@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 
 namespace TheGuide
 {
@@ -41,6 +43,32 @@ namespace TheGuide
 				throw new ArgumentNullException("Input was null or empty!");
 			return input.First().ToString().ToUpper() + input.Substring(1);
 		}
+
+		public static string ToJson<T>(this T any, Formatting formatting = Formatting.Indented) =>
+			JsonConvert.SerializeObject(any, formatting);
+
+		public static int KiB(this int value) => value * 1024;
+		public static int KB(this int value) => value * 1000;
+
+		public static int MiB(this int value) => value.KiB() * 1024;
+		public static int MB(this int value) => value.KB() * 1000;
+
+		public static int GiB(this int value) => value.MiB() * 1024;
+		public static int GB(this int value) => value.MB() * 1000;
+
+		public static ulong KiB(this ulong value) => value * 1024;
+		public static ulong KB(this ulong value) => value * 1000;
+
+		public static ulong MiB(this ulong value) => value.KiB() * 1024;
+		public static ulong MB(this ulong value) => value.KB() * 1000;
+
+		public static ulong GiB(this ulong value) => value.MiB() * 1024;
+		public static ulong GB(this ulong value) => value.MB() * 1000;
+
+		public static string Unmention(this string str) => str.Replace("@", "ම");
+
+		public static string SanitizeMentions(this string str) =>
+			str.Replace("@everyone", "මeveryοne").Replace("@here", "@һere");
 
 		public static string GenFullName(string username, string discriminator) =>
 			$"{username}#{discriminator}";
@@ -110,5 +138,105 @@ namespace TheGuide
 
 		public static string Uncapitalize(this string text, int index = 0) =>
 			new string(text.Select((c, i) => (i == index) ? c : char.ToLower(c)).ToArray());
+
+		private static readonly Regex filterRegex = new Regex(@"(?:discord(?:\.gg|.me|app\.com\/invite)\/(?<id>([\w]{16}|(?:[\w]+-?){3})))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+		public static bool IsDiscordInvite(this string str)
+			=> filterRegex.IsMatch(str);
+
+		public static string RealAvatarUrl(this IUser usr)
+		{
+			return usr.AvatarId.StartsWith("a_")
+				? $"{DiscordConfig.CDNUrl}avatars/{usr.Id}/{usr.AvatarId}.gif"
+				: usr.AvatarId;
+		}
+
+		public static int LevenshteinDistance(this string s, string t)
+		{
+			var n = s.Length;
+			var m = t.Length;
+			var d = new int[n + 1, m + 1];
+
+			// Step 1
+			if (n == 0)
+			{
+				return m;
+			}
+
+			if (m == 0)
+			{
+				return n;
+			}
+
+			// Step 2
+			for (var i = 0; i <= n; d[i, 0] = i++)
+			{
+			}
+
+			for (var j = 0; j <= m; d[0, j] = j++)
+			{
+			}
+
+			// Step 3
+			for (var i = 1; i <= n; i++)
+			{
+				//Step 4
+				for (var j = 1; j <= m; j++)
+				{
+					// Step 5
+					var cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+
+					// Step 6
+					d[i, j] = Math.Min(
+						Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+						d[i - 1, j - 1] + cost);
+				}
+			}
+			// Step 7
+			return d[n, m];
+		}
+
+		/// <summary>
+		/// returns an IEnumerable with randomized element order
+		/// </summary>
+		public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> items)
+		{
+			using (var provider = RandomNumberGenerator.Create())
+			{
+				var list = items.ToList();
+				var n = list.Count;
+				while (n > 1)
+				{
+					var box = new byte[(n / byte.MaxValue) + 1];
+					int boxSum;
+					do
+					{
+						provider.GetBytes(box);
+						boxSum = box.Sum(b => b);
+					}
+					while (!(boxSum < n * ((byte.MaxValue * box.Length) / n)));
+					var k = (boxSum % n);
+					n--;
+					var value = list[k];
+					list[k] = list[n];
+					list[n] = value;
+				}
+				return list;
+			}
+		}
+
+		public static IMessage DeleteAfter(this IUserMessage msg, int ms)
+		{
+			Task.Run(async () =>
+			{
+				await Task.Delay(ms);
+				try { await msg.DeleteAsync().ConfigureAwait(false); }
+				catch
+				{
+					// ignored
+				}
+			});
+			return msg;
+		}
 	}
 }

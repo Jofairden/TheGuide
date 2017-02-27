@@ -93,7 +93,7 @@ namespace TheGuide.Modules
 
 			if (!userJson.SubRoles.Any())
 			{
-				await ReplyAsync($"``{user.GenFullName()}`` is not subscribed to any channels.");
+				await ReplyAsync($"``{user.GenFullName()}`` is not subscribed to any channels");
 				return;
 			}
 
@@ -110,7 +110,7 @@ namespace TheGuide.Modules
 
 			userJson.SubRoles.Clear();
 			await userJson.Write(guild.Id, true);
-			await ReplyAsync($"Unsubscribed ``{user.GenFullName()}`` from all channels.");
+			await ReplyAsync($"Unsubscribed ``{user.GenFullName()}`` from all channels");
 		}
 
 		private async Task TryUnsub(IUser user, ITextChannel channel)
