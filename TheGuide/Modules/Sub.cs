@@ -748,11 +748,13 @@ namespace TheGuide.Modules
 				// need an enumerable due to lib bug
 				var roles =
 					newSubs
-						.Where(x =>
-							guild.GetRole(x.Value) != null
-							&& !(user as SocketGuildUser).Roles.Any(r => r.Id == x.Value))
 						.Select(x =>
 							guild.GetRole(x.Value))
+						.Where(x =>
+							x != null
+							&& !(user as SocketGuildUser).Roles
+								.Any(r =>
+									r.Id == x.Id))
 						.ToList();
 
 				if (roles.Any())
@@ -760,10 +762,10 @@ namespace TheGuide.Modules
 					await (user as IGuildUser).ChangeRolesAsync(add: roles.AsEnumerable());
 					userJson.SubRoles =
 						userJson.SubRoles
-						.Union(roles.Select(x => x.Id))
-						.ToList();
+							.Union(roles.Select(x => x.Id))
+							.ToList();
 
-					var result = 
+					var result =
 						await userJson.Write(guild.Id, true);
 
 					await ReplyAsync(result.IsSuccess
