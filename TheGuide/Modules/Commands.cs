@@ -81,12 +81,29 @@ namespace TheGuide.Modules
 		[Command("changelog")]
 		[Alias("changelogs")]
 		[Summary("Sends a changelog via a DM")]
-		[Remarks("changelog\nchangelog --OR-- changelog r-3.0")]
+		[Remarks("changelog [value]\nchangelog --OR-- changelog list --OR-- changelog r-3.0")]
 		public async Task Changelog([Remainder] string rem = null)
 		{
+			string path;
+			if (rem.RemoveWhitespace().ToLower() == "list")
+			{
+				path = Path.Combine(Program.AssemblyDirectory, $"dist", $"changelogs");
+				var files =
+					Directory.GetFiles(path)
+						.Select(Path.GetFileNameWithoutExtension)
+						.ToArray();
+
+				await ReplyAsync(files.Any()
+					? ($"Found changelogs:\n" +
+					$"\n" +
+					files.PrettyPrint()).Cap(2000)
+					: $"No changelogs found.");
+				return;
+			}
+
 			var changelogFile = rem?.RemoveWhitespace().ToLower() ?? Program.version;
 			// Replace \r\n with \n to save some string length
-			var path = Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt");
+			path = Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt");
 			if (File.Exists(path))
 			{
 				var changelogTxt = File.ReadAllText(path).Replace("\r\n", "\n");
@@ -100,7 +117,7 @@ namespace TheGuide.Modules
 					return;
 				}
 			}
-			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``");
+			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``".Cap(2000));
 		}
 
 		/// <summary>

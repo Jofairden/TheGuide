@@ -452,7 +452,9 @@ namespace TheGuide.Modules
 					.Cap(2000 - msg.Length - extra.Length);
 			}
 
-			await ReplyAsync(msg + extra);
+			await ReplyAsync(msg.EndsWith("`")
+				? msg
+				: msg + extra);
 		}
 
 		/// <summary>
