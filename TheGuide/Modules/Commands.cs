@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TheGuide;
 using TheGuide.Preconditions;
@@ -436,13 +437,35 @@ namespace TheGuide.Modules
 		}
 
 		/// <summary>
+		/// Shows hot mods
+		/// </summary>
+		[Command("hot")]
+		[Summary("Shows the top 10 hottest mods")]
+		[Remarks("hot")]
+		public async Task Hot([Remainder] string rem = null)
+		{
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				var response = await client.GetAsync(ModSystem.hotUrl);
+				var postResponse = await response.Content.ReadAsStringAsync();
+				var json = JArray.Parse(postResponse);
+				var values = json.Children<JObject>()
+					.Select(x =>
+						$"``{x.Property("name").Value}``: {int.Parse(x.Property("dls").Value.ToString()):n0}").ToList();
+				values.Insert(0, "**Showing top 10 hottest mods**");
+				await ReplyAsync(string.Join("\n", values));
+
+			}
+		}
+
+		/// <summary>
 		/// Get mod info
 		/// </summary>
 		[Command("mod")]
 		[Alias("modinfo")]
 		[Summary("Shows info about a mod")]
 		[Remarks("mod <internal modname> --OR-- mod <part of name>\nmod examplemod")]
-		public async Task Mod([Remainder][Summary("The mod name or part of it")] string mod)
+		public async Task Mod([Remainder] string mod)
 		{
 			mod = mod.RemoveWhitespace();
 			var result = await ShowSimilarMods(mod);
@@ -460,6 +483,7 @@ namespace TheGuide.Modules
 				var culture = new CultureInfo("en-US");
 				foreach (var property in modjson.Properties())
 				{
+					if (string.IsNullOrEmpty(property.Value.ToString())) continue;
 					var name = property.Name;
 					string value = 
 							string.Equals(name, "downloads", StringComparison.CurrentCultureIgnoreCase)
@@ -470,10 +494,44 @@ namespace TheGuide.Modules
 					properties.Add($"**{name.FirstCharToUpper()}**: {value}");
 				}
 				properties.Add($"**Widget:** <{ModSystem.widgetUrl}{mod}.png>");
+				using (var client = new System.Net.Http.HttpClient())
+				{
+					var values = new Dictionary<string, string>
+					{
+						{"modname", mod}
+					};
+					var content = new System.Net.Http.FormUrlEncodedContent(values);
+					var response = await client.PostAsync(ModSystem.homepageUrl, content);
+					var postResponse = await response.Content.ReadAsStringAsync();
+					var json = JObject.Parse(postResponse);
+					properties.Add($"**Homepage:** <{json.Property("homepage").Value}>");
+				}
 
 				await ReplyAsync(string.Join("\n", properties).Cap(2000));
 			}
 		}
+
+		[Command("popular")]
+		[Alias("modinfo")]
+		[Summary("Shows info about a mod")]
+		[Remarks("mod <internal modname> --OR-- mod <part of name>\nmod examplemod")]
+		public async Task popular([Remainder] string rem = null)
+		{
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				var response = await client.GetAsync(ModSystem.popularUrl);
+				var postResponse = await response.Content.ReadAsStringAsync();
+				var entries =
+					postResponse
+						.Split(new string[] {"<br>"}, StringSplitOptions.None)
+						.Where((x, i) => i < 10)
+						.ToDictionary(
+							x => new string(x.Where(char.IsLetter).ToArray()), y => new string(y.Where(char.IsDigit).ToArray()));
+
+				await ReplyAsync(string.Join("\n", entries.Select(x => $"**{x.Key}**: {int.Parse(x.Value):n0}")));
+			}
+		}
+
 
 		/// <summary>
 		/// Get a modversion
@@ -629,7 +687,7 @@ namespace TheGuide.Modules
 			if (predicate.StartsWith(modPrefix))
 			{
 				predicate = predicate.Substring(modPrefix.Length);
-				headerTxt += $" **for module**: ``{predicate}``";
+				headerTxt += $" **in module {predicate}**";
 				var module = service.Modules.FirstOrDefault(x =>
 					string.Equals(x.Aliases.First(), predicate, StringComparison.CurrentCultureIgnoreCase));
 

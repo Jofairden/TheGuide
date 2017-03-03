@@ -1,0 +1,8 @@
+﻿```r-3.2 Changelog```
+``Bugfixes``
+Fixed a lot of sub commands not working or not responding properly, this includes the previously not working sub me and unsub me commands
+
+``Commands``
+Added popular command, shows 10 most often downloaded mods.
+Added hot command, shows the 10 hottest mods.
+Added homepage uri when using mod command (from build.txt)

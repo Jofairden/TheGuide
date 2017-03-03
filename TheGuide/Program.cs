@@ -50,7 +50,7 @@ namespace TheGuide
 		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.1";
+		public const string version = "r-3.2";
 
 		// Cache
 		public static stringShortDict itemConsts;
@@ -96,7 +96,7 @@ namespace TheGuide
 
 			// Connection
 			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.BotToken);
+			await client.LoginAsync(TokenType.Bot, Token.TestToken);
 			await client.StartAsync();
 			await Task.Delay(5000); // Give some time to connect
 

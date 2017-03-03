@@ -17,6 +17,9 @@ namespace TheGuide.Systems
 		internal const string queryUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
 		internal const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
 		internal const string xmlUrl = "http://javid.ddns.net/tModLoader/listmods.php";
+		internal const string homepageUrl = "http://javid.ddns.net/tModLoader/moddescription.php";
+		internal const string popularUrl = "http://javid.ddns.net/tModLoader/popularmods.php";
+		internal const string hotUrl = "http://javid.ddns.net/tModLoader/tools/hottop10.php";
 
 		private static string rootDir =>
 			Path.Combine(Program.AssemblyDirectory, "dist");

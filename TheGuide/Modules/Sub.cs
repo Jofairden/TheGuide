@@ -23,26 +23,26 @@ namespace TheGuide.Modules
 		}
 
 		[Name("no-help")]
-		[Command, Priority(10)]
-		public async Task UnsubMe([Remainder] ITextChannel channel) =>
+		[Command, Priority(0)]
+		public async Task UnsubCommand([Remainder] ITextChannel channel) =>
 			await TryUnsub(Context.User, channel);
 
 		[Name("no-help")]
-		[Command, Priority(10)]
+		[Command, Priority(1)]
 		[SubAdminAttr]
-		public async Task UnsubUser(IUser user, [Remainder] ITextChannel channel) =>
+		public async Task UnsubCommand(IUser user, [Remainder] ITextChannel channel) =>
 			await TryUnsub(user, channel);
 
 		[Name("no-help")]
-		[Command, Priority(10)]
+		[Command, Priority(2)]
 		[SubAdminAttr]
-		public async Task UnsubUser(ITextChannel channel, [Remainder]IUser user) =>
+		public async Task UnsubCommand(ITextChannel channel, [Remainder]IUser user) =>
 			await TryUnsub(user, channel);
 
 		[Name("no-help")]
-		[Command, Priority(10)]
+		[Command, Priority(3)]
 		[SubAdminAttr]
-		public async Task UnsubUser(IUser user, [Remainder]string rem)
+		public async Task UnsubCommand(IUser user, [Remainder]string rem)
 		{
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TryUnSubAll(user);
@@ -50,7 +50,12 @@ namespace TheGuide.Modules
 				await service.ExecuteAsync(Context, "help unsub me", map, MultiMatchHandling.Best);
 		}
 
+		[Name("no-help"),Priority(0)]
 		[Command("me")]
+		public async Task Me([Remainder] ITextChannel channel) =>
+			await TryUnsub(Context.User, channel);
+
+		[Command("me"), Priority(1)]
 		[Summary("Unsub to a channel or all channels")]
 		[Remarks("unsub me <channel> --OR-- unsub me all")]
 		public async Task Me([Remainder] string rem = "")
@@ -61,24 +66,23 @@ namespace TheGuide.Modules
 				await service.ExecuteAsync(Context, "help unsub me", map, MultiMatchHandling.Best);
 		}
 
-		[Name("no-help")]
-		[Command("me")]
-		public async Task Me([Remainder] ITextChannel channel) =>
-			await TryUnsub(Context.User, channel);
-
-		[Command("list")]
+		[Command("list"), Priority(0)]
 		[Summary("Lists all existing subscriptions of server or specified user")]
 		[Remarks("list [user]\nlist --OR-- list Jofairden")]
-		public async Task List([Remainder] IUser user = null) =>
-			await service.ExecuteAsync(Context, $"sub list {($"{user?.Id}" ?? "")}");
+		public async Task List([Remainder] string sub = null) =>
+			await service.ExecuteAsync(Context, $"sub list {sub ?? ""}");
 
-		[Command("all")]
+		[Command("list"), Priority(1)]
+		public async Task List([Remainder]IUser user) =>
+		await service.ExecuteAsync(Context, $"sub list {user.Id}");
+
+		[Command("all"), Priority(0)]
 		[Summary("Unsubscribe yourself to all channels")]
 		[Remarks("sub all")]
 		public async Task All([Remainder] string rem = null) =>
 			await TryUnSubAll(Context.User);
 
-		[Name("no-help")]
+		[Name("no-help"),Priority(1)]
 		[Command("all")]
 		[SubAdminAttr]
 		public async Task All([Remainder]IUser user) =>
@@ -343,7 +347,7 @@ namespace TheGuide.Modules
 			await ReplyAsync($"Cleared guild subscription data");
 		}
 
-		[Command("all")]
+		[Command("all"), Priority(0)]
 		[Summary("Subscribe yourself to all channels")]
 		[Remarks("sub all")]
 		public async Task All([Remainder] string rem = null) =>
@@ -359,23 +363,32 @@ namespace TheGuide.Modules
 		/// Self command, channel parameter
 		/// </summary>
 		[Name("no-help")]
-		[Command, Priority(10)]
-		public async Task SubMe([Remainder] ITextChannel channel) =>
+		[Command, Priority(0)]
+		public async Task SubCommand([Remainder] ITextChannel channel) =>
 			await TrySub(Context.User, channel);
 
 		/// <summary>
 		/// Self command, user + channel parameter
 		/// </summary>
 		[Name("no-help")]
-		[Command, Priority(10)]
+		[Command, Priority(1)]
 		[SubAdminAttr]
-		public async Task SubUser(IUser user, [Remainder] ITextChannel channel) =>
+		public async Task SubCommand(IUser user, [Remainder] ITextChannel channel) =>
+			await TrySub(user, channel);
+
+		/// <summary>
+		/// Self command, channel + user parameter
+		/// </summary>
+		[Name("no-help")]
+		[Command, Priority(2)]
+		[SubAdminAttr]
+		public async Task SubCommand(ITextChannel channel, [Remainder] IUser user) =>
 			await TrySub(user, channel);
 
 		[Name("no-help")]
-		[Command, Priority(10)]
+		[Command, Priority(3)]
 		[SubAdminAttr]
-		public async Task SubUser(IUser user, [Remainder] string rem)
+		public async Task SubCommand(IUser user, [Remainder] string rem)
 		{
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TrySubAll(user);
@@ -384,18 +397,9 @@ namespace TheGuide.Modules
 		}
 
 		/// <summary>
-		/// Self command, channel + user parameter
-		/// </summary>
-		[Name("no-help")]
-		[Command, Priority(10)]
-		[SubAdminAttr]
-		public async Task SubUser(ITextChannel channel, [Remainder] IUser user) =>
-			await TrySub(user, channel);
-
-		/// <summary>
 		/// Tries to sub yourself to channel
 		/// </summary>
-		[Command("me")]
+		[Command("me"), Priority(0)]
 		[Summary("Sub yourself to a certain channel, finds any channel by name, mention or ID")]
 		[Remarks("me <channel> --OR-- me all\nme #github --OR-- me github --OR-- me \\#github")]
 		public async Task Me([Remainder] ITextChannel channel)
@@ -403,9 +407,9 @@ namespace TheGuide.Modules
 			await TrySub(Context.User, channel);
 		}
 
-		[Name("no-help")]
+		[Name("no-help"), Priority(1)]
 		[Command("me")]
-		public async Task Me([Remainder] string channel)
+		public async Task Me([Remainder] string channel = "")
 		{
 			if (channel.RemoveWhitespace().ToLower() == "all")
 				await TrySubAll(Context.User);
@@ -418,7 +422,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Command("list")]
 		[Summary("Lists all subscriptions available in the server or of specified user.")]
-		[Remarks("list")]
+		[Remarks("list [user]\nlist --OR-- list Jofairden")]
 		public async Task List()
 		{
 			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
