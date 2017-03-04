@@ -1,8 +1,13 @@
 ﻿```r-3.2 Changelog```
 ``Bugfixes``
 Fixed a lot of sub commands not working or not responding properly, this includes the previously not working sub me and unsub me commands
+Fixed mod command not supporting mods with whitespaces in their name
+Fixed mod info not updating by changing code to use unix timestamps instead of binary (hopefully)
 
 ``Commands``
 Added popular command, shows 10 most often downloaded mods.
 Added hot command, shows the 10 hottest mods.
-Added homepage uri when using mod command (from build.txt)
+
+``Other``
+Added homepage uri when using mod command
+Newly updated mods have more info when using mod command

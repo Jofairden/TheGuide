@@ -32,7 +32,7 @@ namespace TheGuide.Systems
 
 		public static IEnumerable<string> mods =>
 			Directory.GetFiles(modDir, "*.json")
-				.Select(Path.GetFileNameWithoutExtension);
+				.Select(x => Path.GetFileNameWithoutExtension(x).RemoveWhitespace());
 
 		/// <summary>
 		/// Maintains mod data
@@ -52,12 +52,12 @@ namespace TheGuide.Systems
 				if (File.Exists(path))
 				{
 					var savedBinary = File.ReadAllText(path);
-					var savedBinaryDate = DateTime.FromBinary(long.Parse(savedBinary));
-					dateDiff = DateTime.Now - savedBinaryDate;
+					var savedBinaryDate = Tools.DateTimeFromUnixTimestampSeconds(long.Parse(savedBinary));
+					dateDiff = Tools.DateTimeFromUnixTimestampSeconds(Tools.GetCurrentUnixTimestampSeconds()) - savedBinaryDate;
 				}
 
 				// Needs to maintain data
-				if (dateDiff == TimeSpan.MinValue || dateDiff.Days > 1)
+				if (dateDiff == TimeSpan.MinValue || dateDiff.TotalDays > 1d)
 				{
 					var data = await DownloadData();
 					var json = JObject.Parse(data);
@@ -65,12 +65,12 @@ namespace TheGuide.Systems
 
 					foreach (var jtoken in modlist)
 					{
-						var name = jtoken.SelectToken("name").ToObject<string>();
+						var name = jtoken.SelectToken("name").ToObject<string>().RemoveWhitespace();
 						File.WriteAllText(Path.Combine(modDir, $"{name}.json"), jtoken.ToString());
 					}
 
 					if (mods.Count() == modlist.Count)
-						File.WriteAllText(path, $"{DateTime.Now.ToBinary()}");
+						File.WriteAllText(path, $"{Tools.GetCurrentUnixTimestampSeconds()}");
 				}
 			});
 		}

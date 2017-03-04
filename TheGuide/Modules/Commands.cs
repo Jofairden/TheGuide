@@ -314,13 +314,12 @@ namespace TheGuide.Modules
 			if (short.TryParse(usename, out parsed16Int) && Program.itemConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.itemConsts.FirstOrDefault(x => x.Value == parsed16Int);
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
 			else if (Program.itemConsts.ContainsKey(usename))
 			{
 				kvp = Program.itemConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
+			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -341,13 +340,12 @@ namespace TheGuide.Modules
 			if (short.TryParse(usename, out parsed16Int) && Program.dustConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.dustConsts.FirstOrDefault(x => x.Value == parsed16Int);
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
 			else if (Program.dustConsts.ContainsKey(usename))
 			{
 				kvp = Program.dustConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
+			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 
 			await ReplyAsync(replyText);
 		}
@@ -369,13 +367,12 @@ namespace TheGuide.Modules
 			if (short.TryParse(usename, out parsed16Int) && Program.chainConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.chainConsts.FirstOrDefault(x => x.Value == parsed16Int);
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
 			else if (Program.chainConsts.ContainsKey(usename))
 			{
 				kvp = Program.chainConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
+			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 
 			await ReplyAsync(replyText);
 		}
@@ -397,14 +394,12 @@ namespace TheGuide.Modules
 			if (int.TryParse(usename, out parsed16Int) && Program.ammoConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.ammoConsts.FirstOrDefault(x => x.Value == parsed16Int);
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
 			else if (Program.ammoConsts.ContainsKey(usename))
 			{
 				kvp = Program.ammoConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
-
+			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -425,13 +420,12 @@ namespace TheGuide.Modules
 			if (int.TryParse(usename, out parsed16Int) && Program.buffConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.buffConsts.FirstOrDefault(x => x.Value == parsed16Int);
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
 			else if (Program.buffConsts.ContainsKey(usename))
 			{
 				kvp = Program.buffConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
-				replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 			}
+			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
 
 			await ReplyAsync(replyText);
 		}
@@ -440,7 +434,7 @@ namespace TheGuide.Modules
 		/// Shows hot mods
 		/// </summary>
 		[Command("hot")]
-		[Summary("Shows the top 10 hottest mods")]
+		[Summary("Shows top 10 hottest mods")]
 		[Remarks("hot")]
 		public async Task Hot([Remainder] string rem = null)
 		{
@@ -503,8 +497,11 @@ namespace TheGuide.Modules
 					var content = new System.Net.Http.FormUrlEncodedContent(values);
 					var response = await client.PostAsync(ModSystem.homepageUrl, content);
 					var postResponse = await response.Content.ReadAsStringAsync();
-					var json = JObject.Parse(postResponse);
-					properties.Add($"**Homepage:** <{json.Property("homepage").Value}>");
+					if (!string.IsNullOrEmpty(postResponse))
+					{
+						var json = JObject.Parse(postResponse);
+						properties.Add($"**Homepage:** <{json.Property("homepage").Value}>");
+					}
 				}
 
 				await ReplyAsync(string.Join("\n", properties).Cap(2000));
@@ -512,10 +509,10 @@ namespace TheGuide.Modules
 		}
 
 		[Command("popular")]
-		[Alias("modinfo")]
-		[Summary("Shows info about a mod")]
-		[Remarks("mod <internal modname> --OR-- mod <part of name>\nmod examplemod")]
-		public async Task popular([Remainder] string rem = null)
+		[Alias("popularmods")]
+		[Summary("Shows top 10 popular mods")]
+		[Remarks("popular")]
+		public async Task Popular([Remainder] string rem = null)
 		{
 			using (var client = new System.Net.Http.HttpClient())
 			{

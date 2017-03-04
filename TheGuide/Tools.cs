@@ -108,6 +108,24 @@ namespace TheGuide
 				.Where(c => !char.IsWhiteSpace(c))
 				.ToArray());
 
+		private static readonly DateTime UnixEpoch =
+			new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+		public static long GetCurrentUnixTimestampMillis() =>
+			(long)GetCurrentUnixTimespan().TotalMilliseconds;
+
+		public static DateTime DateTimeFromUnixTimestampMillis(long millis) =>
+			UnixEpoch.AddMilliseconds(millis);
+
+		public static long GetCurrentUnixTimestampSeconds() =>
+			(long)GetCurrentUnixTimespan().TotalSeconds;
+
+		public static TimeSpan GetCurrentUnixTimespan() =>
+			DateTime.UtcNow - UnixEpoch;
+
+		public static DateTime DateTimeFromUnixTimestampSeconds(long seconds) =>
+			UnixEpoch.AddSeconds(seconds);
+
 		public static string ReplaceWhitespace(this string input, string replacement) =>
 			input.Replace(" ", replacement);
 
