@@ -80,7 +80,7 @@ namespace TheGuide
 				{
 					// Tag not found
 
-					if (result.ToString() != "UnknownCommand: Unknown command.") // We do not want to display this error
+					//if (result.ToString() != "UnknownCommand: Unknown command.") // We do not want to display this error
 						await context.Channel.SendMessageAsync($"{Format.Bold("Error")} on ``{message.Content}``\n{result}");
 				}
 

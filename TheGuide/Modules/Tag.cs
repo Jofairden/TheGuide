@@ -33,7 +33,7 @@ namespace TheGuide.Modules
 		[Command("validate")]
 		[Summary("Validates all existing tags for this server")]
 		[Remarks("validate")]
-		[AdmDevAttr]
+		[ConfAdmAttr]
 		public async Task Validate([Remainder] string rem = null)
 		{
 			var list = await TagSystem.ValidateTags(Context.Guild.Id);
@@ -54,7 +54,7 @@ namespace TheGuide.Modules
 		[Alias("make")]
 		[Summary("Creates a tag")]
 		[Remarks("create <name> <content>\ncreate ExampleTag Some output message.")]
-		[AdmDevAttr]
+		[ConfAdmAttr]
 		public async Task Create(string name, [Remainder] string input)
 		{
 			var json = new TagJson()
@@ -83,7 +83,7 @@ namespace TheGuide.Modules
 		[Alias("remove")]
 		[Summary("deletes a tag")]
 		[Remarks("delete <name>\ndelete ExampleTag")]
-		[AdmDevAttr]
+		[ConfAdmAttr]
 		public async Task Delete([Remainder] string name)
 		{
 			var result = await TagSystem.DeleteTag(Context.Guild.Id, name);
@@ -101,7 +101,7 @@ namespace TheGuide.Modules
 		[Alias("change", "alter")]
 		[Summary("Changes the content of a tag")]
 		[Remarks("edit <name> <content>\nedit ExampleTag some new output")]
-		[AdmDevAttr]
+		[ConfAdmAttr]
 		public async Task Edit(string name, [Remainder] string input)
 		{
 			TagJson tag = TagSystem.getTag(Context.Guild.Id, name);
@@ -211,7 +211,7 @@ namespace TheGuide.Modules
 
 			string header = $"Showing info for tag ``{tag.Name}``";
 			string content = string.Join("\n",
-				JsonConvert.DeserializeObject<JObject>(tag.ToJson())
+				JsonConvert.DeserializeObject<JObject>(tag.SerializeToJson())
 					.Properties()
 					.Select(p => $"**{p.Name}**: {(p.Value.Type == JTokenType.Array ? string.Join(", ", p.Values()) : p.Value)}"));
 

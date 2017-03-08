@@ -96,7 +96,7 @@ namespace TheGuide
 
 			// Connection
 			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.TestToken);
+			await client.LoginAsync(TokenType.Bot, Token.BotToken);
 			await client.StartAsync();
 			await Task.Delay(5000); // Give some time to connect
 
@@ -117,6 +117,9 @@ namespace TheGuide
 					$"\n" +
 					$"Our server uses a channel subscription system!\n" +
 					$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
+					$"\n" +
+					$"Use ``{CommandHandler.prefixChar}changelog`` to see my most recent changes!" +
+					$"\n" +
 					$"\n" +
 					$"Have a nice stay! :wave:");
 			};
@@ -145,8 +148,7 @@ namespace TheGuide
 			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
 
 
-			// Maintain sub system when user joins / leave
-			// Because our server runs on ~2k members, we make sure to remove data when it's not needed here
+			//Maintain systems
 			var timer = new Timer(async s =>
 				{
 					int tries = 5;
@@ -155,6 +157,7 @@ namespace TheGuide
 					{
 						try
 						{
+							await ConfigSystem.Maintain(client);
 							await TagSystem.Maintain(client);
 							await SubSystem.Maintain(client);
 							await ModSystem.Maintain(client);
@@ -185,8 +188,8 @@ namespace TheGuide
 
 			await client.SetStatusAsync(
 				//maintenanceMode ? UserStatus.DoNotDisturb :
-				(client.ConnectionState == ConnectionState.Connecting || j > 250) ? UserStatus.Idle
-				: (client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
+				(/*client.ConnectionState == ConnectionState.Disconnected ||*/ j > 500) ? UserStatus.DoNotDisturb
+				: (/*client.ConnectionState == ConnectionState.Connecting ||*/ j > 250) ? UserStatus.Idle
 				: UserStatus.Online);
 
 			//await client.SetGameAsync(/*maintenanceMode ? "maintenance" : */"Terraria");

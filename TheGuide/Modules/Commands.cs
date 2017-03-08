@@ -39,7 +39,7 @@ namespace TheGuide.Modules
 		[Command("snowflake")]
 		[Summary("Will generate up to 10 snowflake ids and guids")]
 		[Remarks("snowflake [amount]\nsnowflake 10")]
-		[AdmDevAttr]
+		[ConfAdmAttr]
 		public async Task SnowFlake([Remainder] int rem = 1)
 		{
 			rem = Math.Max(0, Math.Min(10, rem));
@@ -102,7 +102,6 @@ namespace TheGuide.Modules
 
 				await ReplyAsync(files.Any()
 					? ($"Found changelogs:\n" +
-					$"\n" +
 					files.PrettyPrint())
 					.Cap(2000)
 					: $"No changelogs found.");

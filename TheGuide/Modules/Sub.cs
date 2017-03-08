@@ -11,6 +11,7 @@ using TheGuide.Systems;
 namespace TheGuide.Modules
 {
 	[Group("unsub")]
+	[Name("unsub")]
 	public class Unsub : ModuleBase
 	{
 		private readonly CommandService service;
@@ -21,6 +22,11 @@ namespace TheGuide.Modules
 			this.service = service;
 			this.map = map;
 		}
+
+		[Name("no-help")]
+		[Command("help")]
+		public async Task Help([Remainder] string rem =null) =>
+			await service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", map, MultiMatchHandling.Best);
 
 		[Name("no-help")]
 		[Command, Priority(0)]
@@ -164,10 +170,14 @@ namespace TheGuide.Modules
 			this.map = map;
 		}
 
+		[Name("no-help")]
+		[Command("help")]
+		public async Task Help([Remainder] string rem = null) =>
+			await service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", map, MultiMatchHandling.Best);
+
 		/// <summary>
 		/// Removes all sub roles from the guild, and any user files
 		/// </summary>
-		/// <returns></returns>
 		[Command("clearsubroles")]
 		[Alias("csr")]
 		[SubAdminAttr]

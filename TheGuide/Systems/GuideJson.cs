@@ -30,7 +30,12 @@ namespace TheGuide.Systems
 		{
 
 		}
+
 		public virtual void Validate(long? id)
+		{
+		}
+
+		public virtual void Validate(ulong? id)
 		{
 
 		}
@@ -46,7 +51,7 @@ namespace TheGuide.Systems
 			return string.Join("\n", fields.Select(x => $"**{x.Key.AddSpacesToSentence().Uncapitalize()}**: {x.Value}").ToArray());
 		}
 
-		public string ToJson() =>
+		public string SerializeToJson() =>
 			JsonConvert.SerializeObject(this);
 	}
 }
