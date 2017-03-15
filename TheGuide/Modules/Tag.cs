@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -25,6 +22,12 @@ namespace TheGuide.Modules
 		{
 			this.service = service;
 			this.map = map;
+		}
+
+		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
+		{
+			var msg = message.Unmention();
+			return base.ReplyAsync(msg, isTTS, embed, options);
 		}
 
 		/// <summary>

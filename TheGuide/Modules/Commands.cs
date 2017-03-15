@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using TheGuide;
 using TheGuide.Preconditions;
 using TheGuide.Systems;
 using TheGuide.Systems.Snowflake;
@@ -33,10 +31,16 @@ namespace TheGuide.Modules
 			this.map = map;
 		}
 
+		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
+		{
+			var msg = message.Unmention();
+			return base.ReplyAsync(msg, isTTS, embed, options);
+		}
+
 		/// <summary>
 		/// Generates snowflake IDs
 		/// </summary>
-		[Command("snowflake")]
+		[Command("snowflake"), Ratelimit(5, 2, Measure.Minutes)]
 		[Summary("Will generate up to 10 snowflake ids and guids")]
 		[Remarks("snowflake [amount]\nsnowflake 10")]
 		[ConfAdmAttr]
@@ -70,16 +74,26 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Returns bot response time
 		/// </summary>
-		[Command("ping")]
+		[Command("ping"), Ratelimit(5, 1, Measure.Minutes)]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
 		[Remarks("ping")]
 		public async Task Ping([Remainder] string rem = null)
 		{
+			var sw = Stopwatch.StartNew();
 			var d = 60d / (Context.Client as DiscordSocketClient)?.Latency * 1000;
 			if (d != null)
-				await ReplyAsync(
-					$"My heartrate is ``{(int)d}`` bpm ({(Context.Client as DiscordSocketClient)?.Latency} ms)");
+			{
+				var l = (Context.Client as DiscordSocketClient).Latency;
+				var msg = await ReplyAsync(
+					$"My heartrate is ``{(int)d}`` bpm ({l} ms)");
+				await msg.ModifyAsync(p => p.Content =
+					$"{msg.Content}" +
+					$"\nMessage response time is {sw.ElapsedMilliseconds} ms" +
+					$"\n[Delta: {Math.Abs(sw.ElapsedMilliseconds - l)} ms]");
+				sw.Stop();
+			}
+
 		}
 
 		/// <summary>
@@ -92,7 +106,7 @@ namespace TheGuide.Modules
 		public async Task Changelog([Remainder] string rem = null)
 		{
 			string path;
-			if (rem != null && rem.RemoveWhitespace().ToLower() == "list")
+			if (rem != null && rem.Cap2000Compare("list"))
 			{
 				path = Path.Combine(Program.AssemblyDirectory, $"dist", $"changelogs");
 				var files =
@@ -101,9 +115,9 @@ namespace TheGuide.Modules
 						.ToArray();
 
 				await ReplyAsync(files.Any()
-					? ($"Found changelogs:\n" +
-					files.PrettyPrint())
-					.Cap(2000)
+					? $"Found changelogs:\n" +
+					files.PrettyPrint() +
+					$"\n\nUse ``{CommandHandler.prefixChar}changelog <value>`` to get changelogs.\nExample: ``{CommandHandler.prefixChar}changelog {Program.version}``"
 					: $"No changelogs found.");
 				return;
 			}
@@ -119,12 +133,12 @@ namespace TheGuide.Modules
 					var ch = await Context.Message.Author.CreateDMChannelAsync();
 					foreach (var msg in changelogTxt.ChunksUpto(1999))
 						await ch.SendMessageAsync(msg);
-					await Context.Message.AddReactionAsync("👌");
-					await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚");
+					await Context.Message.AddReactionAsync("👌"); // adds a reaction emoji
+					await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚"); // emoji in message
 					return;
 				}
 			}
-			await ReplyAsync($"Could not find changelogs for ``{changelogFile}``".Cap(2000));
+			await ReplyAsync($"Could not find changelogs for ``{changelogFile.Cap(10)}``");
 		}
 
 		/// <summary>
@@ -140,39 +154,46 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Responds with bot info
 		/// </summary>
-		[Command("info")]
+		[Command("info"), Ratelimit(2, 1, Measure.Minutes)]
 		[Alias("about")]
 		[Summary("Shows elaborate bot info")]
-		[Remarks("info --OR-- about")]
+		[Remarks("info --OR-- about\ninfo expand")]
 		//[RequireContext(ContextType.DM)]
-		public async Task Info([Remainder] string rem = null)
+		public async Task Info([Remainder] string rem = "")
 		{
 			var application = await Context.Client.GetApplicationInfoAsync();
-			var client = (Context.Client as DiscordSocketClient);
-			await ReplyAsync(($"{Format.Bold($"Info for {client?.CurrentUser.GenFullName()}")}\n" +
-							 $"- Author: {Tools.GenFullName(application.Owner.Username, application.Owner.Discriminator)} ({application.Owner.Id})\n" +
-							 $"- Library: Discord.Net ({DiscordConfig.Version})\n" +
-							 $"- API: {DiscordConfig.APIVersion}\n" +
-							 $"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
-							 $"- Uptime: {Tools.GetUptime()} (dd\\hh\\mm\\ss)\n" +
-							 $"- Bot version: {Program.version}\n\n" +
+			var client = Context.Client as DiscordSocketClient;
 
-							 $"{Format.Bold("Stats")}\n" +
-							 $"- Heap Size: {Tools.GetHeapSize()} MB\n" +
-							 $"- Guilds: {client?.Guilds.Count}\n" +
-							 $"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)} " +
-							 $"(of which text: {client?.Guilds.Sum(g => g.TextChannels.Count)}, " +
-							 $"voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)})\n" +
-							 $"- Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
-							 $"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
-							 $"- Users: {client?.Guilds.Sum(g => g.MemberCount)} (of which cached: {client?.Guilds.Sum(g => g.Users.Count)})")
-							 .Cap(2000));
+			var msg = $"**Info**\n" +
+						$"- Author: {Tools.GenFullName(application.Owner.Username, application.Owner.Discriminator)}" +
+						$" [ID: {application.Owner.Id}]\n" +
+						$"- Library: Discord.Net ({DiscordConfig.Version})" +
+						$" [API: {DiscordConfig.APIVersion}]\n" +
+						$"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
+						$"- Uptime: {Tools.GetUptime()} (dd\\.hh\\:mm\\:ss)\n" +
+						$"- Bot version: {Program.version}";
+
+			if (rem.Cap2000Compare("expand"))
+			{
+				msg += $"\n\n**Stats**\n" +
+						$"- Heap Size: {Tools.GetHeapSize()} MB\n" +
+						$"- Guilds: {client?.Guilds.Count}\n" +
+						$"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
+						$" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
+						$" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
+						$"- Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
+						$"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
+						$"- Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
+						$" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]";
+			}
+
+			await ReplyAsync(msg.Cap(2000));
 		}
 
 		/// <summary>
 		/// Lookup a user
 		/// </summary>
-		[Command("whois")]
+		[Command("whois"), Ratelimit(5, 1, Measure.Minutes)]
 		[Summary("Whois user lookup in guilds")]
 		[Remarks("whois <username/nickname> --OR-- whois role:<rolename>\nwhois the guide --OR-- whois role:admin")]
 		//[RequireContext(ContextType.DM)]
@@ -212,9 +233,6 @@ namespace TheGuide.Modules
 					//var sb2 = new StringBuilder();
 					//client?.Guilds.ToList().ForEach(g => g.Roles.ToList().Where(srole => users.Any(user => user.Any(p => p.RoleIds.Contains(srole.Id))) && !srole.IsEveryone).ToList().ForEach(r => sb2.Append($"{r.Name}, ")));
 					//sb.AppendLine($"\n**All roles on users:**\n{sb2}".Truncate(2));
-					var msgs = sb.ToString().ChunksUpto(2000);
-					foreach (var msg in msgs)
-						await ReplyAsync(msg);
 				}
 				else
 					sb.Append($"No users found matching predicate {predicate}");
@@ -243,31 +261,29 @@ namespace TheGuide.Modules
 							sb.AppendLine($"{(user.Nickname == null ? Format.Bold(user.Username) : user.Username)}#{user.Discriminator}" +
 										$"{(user.Nickname != null ? $" ({Format.Bold(user.Nickname)})" : "")} " +
 										$"({client?.Guilds.ElementAt(i).Name})");
-
-					var msgs = sb.ToString().ChunksUpto(2000);
-					foreach (var msg in msgs)
-						await ReplyAsync(msg);
 				}
 				else
 					sb.Append($"No users found matching predicate {predicate}");
 
-				string notify = sb.ToString();
-				if (notify.Length > 2000)
-				{
-					sb.Clear();
-					sb.Append(notify.Cap(2000));
-					var len = sb.Length;
-					sb.Remove(len - 2, 2).Insert(len - 2, "``");
-					notify = sb.ToString();
-				}
-				await ReplyAsync(notify);
+
 			}
+
+			string notify = sb.ToString();
+			if (notify.Length > 2000)
+			{
+				sb.Clear();
+				sb.Append(notify.Cap(2000));
+				var len = sb.Length;
+				sb.Remove(len - 2, 2).Insert(len - 2, "``");
+				notify = sb.ToString();
+			}
+			await ReplyAsync(notify);
 		}
 
 		/// <summary>
 		/// Generates a mod widget
 		/// </summary>
-		[Command("widget")]
+		[Command("widget"), Ratelimit(2, 1, Measure.Minutes)]
 		[Alias("widgetimg", "widgetimage")]
 		[Summary("Generates a widget image of specified mod")]
 		[Remarks("widget <mod>\nwidget examplemod")]
@@ -277,13 +293,13 @@ namespace TheGuide.Modules
 			var result = await ShowSimilarMods(mod);
 
 			if (result)
-			using (var client = new System.Net.Http.HttpClient())
-			using (var stream = await client.GetStreamAsync($"{ModSystem.widgetUrl}{mod}.png"))
-			{
-				var sendFileAsync = Context.Channel?.SendFileAsync(stream, $"{mod}.png", $"Widget for ``{mod}``");
-				if (sendFileAsync != null)
-					await sendFileAsync;
-			}
+				using (var client = new System.Net.Http.HttpClient())
+				using (var stream = await client.GetStreamAsync($"{ModSystem.widgetUrl}{mod}.png"))
+				{
+					var sendFileAsync = Context.Channel?.SendFileAsync(stream, $"{mod}.png", $"Widget for ``{mod}``");
+					if (sendFileAsync != null)
+						await sendFileAsync;
+				}
 		}
 
 		/// <summary>
@@ -432,7 +448,7 @@ namespace TheGuide.Modules
 		/// <summary>
 		/// Shows hot mods
 		/// </summary>
-		[Command("hot")]
+		[Command("hot"), Ratelimit(2, 1, Measure.Minutes)]
 		[Summary("Shows top 10 hottest mods")]
 		[Remarks("hot")]
 		public async Task Hot([Remainder] string rem = null)
@@ -444,8 +460,8 @@ namespace TheGuide.Modules
 				var json = JArray.Parse(postResponse);
 				var values = json.Children<JObject>()
 					.Select(x =>
-						$"``{x.Property("name").Value}``: {int.Parse(x.Property("dls").Value.ToString()):n0}").ToList();
-				values.Insert(0, "**Showing top 10 hottest mods**");
+						$"**{x.Property("name").Value}**: {int.Parse(x.Property("dls").Value.ToString()):n0}").ToList();
+				values.Insert(0, "``Showing top 10 hottest mods (mod: hotness)``");
 				await ReplyAsync(string.Join("\n", values));
 
 			}
@@ -478,7 +494,7 @@ namespace TheGuide.Modules
 				{
 					if (string.IsNullOrEmpty(property.Value.ToString())) continue;
 					var name = property.Name;
-					string value = 
+					string value =
 							string.Equals(name, "downloads", StringComparison.CurrentCultureIgnoreCase)
 							? $"{property.Value:n0}"
 							: string.Equals(name, "updateTimeStamp", StringComparison.CurrentCultureIgnoreCase)
@@ -507,7 +523,7 @@ namespace TheGuide.Modules
 			}
 		}
 
-		[Command("popular")]
+		[Command("popular"), Ratelimit(2, 1, Measure.Minutes)]
 		[Alias("popularmods")]
 		[Summary("Shows top 10 popular mods")]
 		[Remarks("popular")]
@@ -519,12 +535,13 @@ namespace TheGuide.Modules
 				var postResponse = await response.Content.ReadAsStringAsync();
 				var entries =
 					postResponse
-						.Split(new string[] {"<br>"}, StringSplitOptions.None)
+						.Split(new string[] { "<br>" }, StringSplitOptions.None)
 						.Where((x, i) => i < 10)
 						.ToDictionary(
 							x => new string(x.Where(char.IsLetter).ToArray()), y => new string(y.Where(char.IsDigit).ToArray()));
 
-				await ReplyAsync(string.Join("\n", entries.Select(x => $"**{x.Key}**: {int.Parse(x.Value):n0}")));
+				await ReplyAsync($"``Showing top 10 popular mods (mod: downloads)``\n" +
+								 string.Join("\n", entries.Select(x => $"**{x.Key}**: {int.Parse(x.Value):n0}")));
 			}
 		}
 
@@ -563,9 +580,11 @@ namespace TheGuide.Modules
 			var modMsg = "No mods found..."; ;
 
 			// Find similar mods
+
 			var similarMods =
 				ModSystem.mods
-					.Where(m => m.Contains(mod, StringComparison.CurrentCultureIgnoreCase))
+					.Where(m => m.Contains(mod, StringComparison.CurrentCultureIgnoreCase)
+								&& m.LevenshteinDistance(mod) <= m.Length - 2) // prevents insane amount of mods found
 					.ToArray();
 
 			if (similarMods.Any())
@@ -624,7 +643,7 @@ namespace TheGuide.Modules
 					$"No default commands found.";
 
 			else if (commandTxt.TrimEnd().EndsWith(","))
-				commandTxt = 
+				commandTxt =
 					commandTxt.Truncate(2);
 
 			var modules = service.Modules.Where(x =>
@@ -799,7 +818,7 @@ namespace TheGuide.Modules
 
 			if (command != null)
 			{
-				var result = 
+				var result =
 					await command.CheckPreconditionsAsync(Context, map);
 
 				var aliases =
@@ -807,7 +826,7 @@ namespace TheGuide.Modules
 						.Skip(1)
 						.ToArray();
 
-				split = 
+				split =
 					command.Remarks.Split('\n');
 
 				var usage =

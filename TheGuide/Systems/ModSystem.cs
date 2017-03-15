@@ -2,12 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
-using Discord.WebSocket;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
@@ -82,14 +78,28 @@ namespace TheGuide.Systems
 		{
 			using (var client = new System.Net.Http.HttpClient())
 			{
+				var version = await GetTMLVersion();
 				var values = new Dictionary<string, string>
 				{
-					{"modloaderversion", "tModLoader v0.9.1.1" }
+					{"modloaderversion", $"tModLoader {version}" }
 				};
 				var content = new System.Net.Http.FormUrlEncodedContent(values);
 				var response = await client.PostAsync(xmlUrl, content);
 				var postResponse = await response.Content.ReadAsStringAsync();
 				return postResponse;
+			}
+		}
+		
+		// Very nasty, needs something better
+		private static async Task<string> GetTMLVersion()
+		{
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				var response =
+					await client.GetAsync(
+						"https://raw.githubusercontent.com/bluemagic123/tModLoader/master/solutions/CompleteRelease.bat");
+				var postResponse = await response.Content.ReadAsStringAsync();
+				return postResponse.Split('\n')[3].Split('=')[1];
 			}
 		}
 	}

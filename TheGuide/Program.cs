@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,7 +8,6 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using TheGuide.ID;
-using TheGuide.Modules;
 using TheGuide.Systems;
 // Just using this to show off it's possible, and how to.
 using stringShortDict = System.Collections.Generic.Dictionary<string, short>;
@@ -50,7 +46,7 @@ namespace TheGuide
 		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.2";
+		public const string version = "r-3.3";
 
 		// Cache
 		public static stringShortDict itemConsts;
@@ -104,11 +100,11 @@ namespace TheGuide
 			client.LatencyUpdated += Client_LatencyUpdated;
 			client.GuildMemberUpdated += async (i, j) =>
 			{
-				await SubSystem.MaintainUser(j.Guild.Id, j);
+				await SubSystem.MaintainUser(j.Guild, j);
 			};
 			client.UserJoined += async (u) =>
 			{
-				await SubSystem.MaintainUser(u.Guild.Id, u);
+				await SubSystem.MaintainUser(u.Guild, u);
 				var ch = await u.CreateDMChannelAsync();
 				await ch.SendMessageAsync(
 					$"Hey there {u.Username}!\n" +
@@ -129,6 +125,14 @@ namespace TheGuide
 				if (!result.IsSuccess)
 					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
 			};
+			client.ChannelDestroyed += async (c) =>
+			{
+				var ch = c as SocketGuildChannel;
+				if (ch != null)
+				{
+					await SubSystem.MaintainServer(ch.Guild);
+				}
+			};
 
 			// Map
 			var map = new DependencyMap();
@@ -143,41 +147,41 @@ namespace TheGuide
 			handler = new CommandHandler();
 			await handler.Install(map);
 
-			await client.SetGameAsync($"{CommandHandler.prefixChar}help");
+			//await client.SetGameAsync($"{CommandHandler.prefixChar}help");
 			// Create tag directory for new server
 			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
 
 
 			//Maintain systems
 			var timer = new Timer(async s =>
+			{
+				int tries = 5;
+				bool success = false;
+				while (!success && tries > 0)
 				{
-					int tries = 5;
-					bool success = false;
-					while (!success && tries > 0)
+					try
 					{
-						try
-						{
-							await ConfigSystem.Maintain(client);
-							await TagSystem.Maintain(client);
-							await SubSystem.Maintain(client);
-							await ModSystem.Maintain(client);
-							success = true;
-						}
-						catch
-						{
-							if (--tries <= 0)
-								throw;
-						}
+						await ConfigSystem.Maintain(client);
+						await TagSystem.Maintain(client);
+						await SubSystem.Maintain(client);
+						await ModSystem.Maintain(client);
+						success = true;
 					}
-				},
-				null,
-				TimeSpan.FromSeconds(5),
-				TimeSpan.FromMinutes(15));
+					catch
+					{
+						if (--tries <= 0)
+							return; // do not break, may crash bot at runtime
+					}
+				}
+			},
+			null,
+			TimeSpan.FromSeconds(5),
+			TimeSpan.FromMinutes(15));
 
 			await Task.Delay(-1);
 		}
 
-		const int offset = -10;
+		private const int offset = -10;
 
 		private async Task Client_Log(LogMessage e) =>
 			await Console.Out.WriteLineAsync($"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~");
@@ -188,11 +192,12 @@ namespace TheGuide
 
 			await client.SetStatusAsync(
 				//maintenanceMode ? UserStatus.DoNotDisturb :
-				(/*client.ConnectionState == ConnectionState.Disconnected ||*/ j > 500) ? UserStatus.DoNotDisturb
-				: (/*client.ConnectionState == ConnectionState.Connecting ||*/ j > 250) ? UserStatus.Idle
+				// ConnectionState was bugged, should be fixed in newer builds
+				(client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
+				: (client.ConnectionState == ConnectionState.Connecting || j > 250) ? UserStatus.Idle
 				: UserStatus.Online);
 
-			//await client.SetGameAsync(/*maintenanceMode ? "maintenance" : */"Terraria");
+			await client.SetGameAsync(/*maintenanceMode ? "maintenance" : */"Terraria");
 		}
 	}
 }

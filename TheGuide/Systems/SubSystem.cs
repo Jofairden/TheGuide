@@ -1,15 +1,10 @@
 ﻿using Discord;
-using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using TheGuide.Systems.Helpers;
 
 namespace TheGuide.Systems
 {
@@ -66,7 +61,7 @@ namespace TheGuide.Systems
 			}
 		}
 
-		public async Task<GuideResult> Write(ulong guid, bool ignore = false )
+		public async Task<GuideResult> Write(ulong guid, bool ignore = false)
 		{
 			var result = await SubSystem.CreateUserSub(guid, UID, this, ignore);
 			return result;
@@ -103,30 +98,82 @@ namespace TheGuide.Systems
 			{
 				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
-				foreach (var guild in (client as DiscordSocketClient).Guilds)
-				{
-					var path = Path.Combine(rootDir, $"{guild.Id}");
-					Directory.CreateDirectory(path);
-					if (!File.Exists(Path.Combine(path, "server.json")))
-						await CreateServerSub(guild.Id, new SubServerJson { GUID = guild.Id });
-					await guild.DownloadUsersAsync();
-					foreach (var user in guild.Users)
-						await MaintainUser(guild.Id, user);
-				}
+				var discordSocketClient = client as DiscordSocketClient;
+				if (discordSocketClient != null)
+					foreach (var guild in discordSocketClient.Guilds)
+					{
+						await MaintainServer(guild);
+					}
 			});
 		}
 
-		public static async Task MaintainUser(ulong guid, IUser user)
+		public static async Task MaintainServer(SocketGuild guild)
 		{
-			var userJson =
-				new SubUserJson
-				{
-					Name = user.GenFullName(),
-					UID = user.Id,
-					SubRoles = new List<ulong>()
-				};
+			var path = Path.Combine(rootDir, $"{guild.Id}");
+			Directory.CreateDirectory(path);
+			if (!File.Exists(Path.Combine(path, "server.json")))
+			{
+				await CreateServerSub(guild.Id, new SubServerJson {GUID = guild.Id});
+			}
+			else
+			{
+				var json = LoadSubServerJson(guild.Id);
 
-			await CreateUserSub(guid, user.Id, userJson);
+				// Try to remove subscriptions with non existing roles
+				var groles = guild.Roles.Where(r => !r.IsEveryone).Select(x => x.Id);
+				var roleIds = json.Data.Select(x => x.Value).Except(groles).ToList();
+				var keys = roleIds.Select(id => json.Data.First(y => y.Value == id).Key);
+
+				// Try to remove subscriptions with non existing channels
+				var gchannels = guild.TextChannels.Select(x => x.Id);
+				var channelIds = json.Data.Select(x => x.Key).Except(gchannels).ToList();
+				keys = keys.Union(channelIds.Select(id => json.Data.First(y => y.Key == id).Key));
+
+				var totalRoleIds = json.Data.Where(x => keys.Contains(x.Key)).Select(x => x.Value).ToList();
+
+				// Remove keys from data
+				keys.ToList()
+					.ForEach(key =>
+						json.Data.Remove(key));
+				// Write data
+				await CreateServerSub(guild.Id, json);
+
+				// Remove roles which aren't in a subscription anymore
+				totalRoleIds
+					.ForEach(async x =>
+						await guild.GetRole(x).DeleteAsync());
+
+			}
+			await guild.DownloadUsersAsync();
+			foreach (var user in guild.Users)
+				await MaintainUser(guild, user);
+		}
+
+		public static async Task MaintainUser(SocketGuild guild, IUser user)
+		{
+			var path = Path.Combine(rootDir, $"{guild.Id}");
+			Directory.CreateDirectory(path);
+			if (!File.Exists(Path.Combine(path, $"{user.Id}.json")))
+			{
+				var json =
+					new SubUserJson
+					{
+						Name = user.GenFullName(),
+						UID = user.Id,
+						SubRoles = new List<ulong>()
+					};
+				await CreateUserSub(guild.Id, user.Id, json);
+			}		
+			else
+			{
+				var json = LoadSubUserJson(guild.Id, user.Id);
+
+				// Remove role data for non existant roles
+				var groles = guild.Roles.Where(r => !r.IsEveryone).Select(x => x.Id);
+				var roleIds = json.SubRoles.Except(groles).ToList();
+				roleIds.ForEach(x => json.SubRoles.Remove(x));
+				await CreateUserSub(guild.Id, user.Id, json, true);
+			}
 		}
 
 		/// <summary>

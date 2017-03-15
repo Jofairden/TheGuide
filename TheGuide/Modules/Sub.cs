@@ -23,6 +23,12 @@ namespace TheGuide.Modules
 			this.map = map;
 		}
 
+		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
+		{
+			var msg = message.Unmention();
+			return base.ReplyAsync(msg, isTTS, embed, options);
+		}
+
 		[Name("no-help")]
 		[Command("help")]
 		public async Task Help([Remainder] string rem =null) =>
@@ -168,6 +174,12 @@ namespace TheGuide.Modules
 		{
 			this.service = service;
 			this.map = map;
+		}
+
+		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
+		{
+			var msg = message.Unmention();
+			return base.ReplyAsync(msg, isTTS, embed, options);
 		}
 
 		[Name("no-help")]
@@ -328,23 +340,28 @@ namespace TheGuide.Modules
 			await guild.DownloadUsersAsync();
 			foreach (var user in guild.Users)
 			{
-				var userJson = 
-					SubSystem.LoadSubUserJson(guild.Id, user.Id);
+				if (SubSystem.jsonfiles(guild.Id)
+					.Any(x =>
+						x == $"{user.Id}")) // fixes errors not finding file, only for found files
+				{
+					var userJson =
+						SubSystem.LoadSubUserJson(guild.Id, user.Id);
 
-				// Clear json data
-				userJson.SubRoles.Clear();
-				await userJson.Write(guild.Id, true);
+					// Clear json data
+					userJson.SubRoles.Clear();
+					await userJson.Write(guild.Id, true);
 
-				// Get user sub roles
-				var compliantRoles =
-					user.Roles
-						.Where(x =>
-							roles.Contains(x))
-						.ToArray();
+					// Get user sub roles
+					var compliantRoles =
+						user.Roles
+							.Where(x =>
+								roles.Contains(x))
+							.ToArray();
 
-				// Remove roles
-				if (compliantRoles.Any())
-					await user.ChangeRolesAsync(remove: compliantRoles);
+					// Remove roles
+					if (compliantRoles.Any())
+						await user.ChangeRolesAsync(remove: compliantRoles);
+				}
 			}
 
 
@@ -573,29 +590,34 @@ namespace TheGuide.Modules
 			await guild.DownloadUsersAsync();
 			foreach (var user in guild.Users)
 			{
-				var userJson =
-					SubSystem.LoadSubUserJson(guild.Id, user.Id);
-
-				var roleIds = data.Select(x => x.Value);
-				if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+				if (SubSystem.jsonfiles(guild.Id)
+					.Any(x =>
+						x == $"{user.Id}")) // fixes errors not finding file, only for found files
 				{
-					userJson.SubRoles =
-						userJson.SubRoles
-							.Except(data.Select(x => x.Value))
-							.ToList();
+					var userJson =
+						SubSystem.LoadSubUserJson(guild.Id, user.Id);
 
-					await userJson.Write(guild.Id, true);
+					var roleIds = data.Select(x => x.Value);
+					if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+					{
+						userJson.SubRoles =
+							userJson.SubRoles
+								.Except(data.Select(x => x.Value))
+								.ToList();
 
-					var remRoles =
-						data
-							.Where(x =>
-								user.Guild.GetRole(x.Value) != null)
-							.Select(x =>
-								user.Guild.GetRole(x.Value))
-							.ToArray();
+						await userJson.Write(guild.Id, true);
 
-					if (remRoles.Any())
-						await user.ChangeRolesAsync(remove: remRoles);
+						var remRoles =
+							data
+								.Where(x =>
+									user.Guild.GetRole(x.Value) != null)
+								.Select(x =>
+									user.Guild.GetRole(x.Value))
+								.ToArray();
+
+						if (remRoles.Any())
+							await user.ChangeRolesAsync(remove: remRoles);
+					}
 				}
 			}
 
@@ -627,7 +649,8 @@ namespace TheGuide.Modules
 				serverJson.Data
 					.Where(x =>
 						x.Value == role.Id)
-					.ToDictionary(x => x.Key, x => x.Value);
+					.ToDictionary(x =>
+						x.Key, x => x.Value);
 
 			if (!data.Any())
 			{
@@ -638,29 +661,34 @@ namespace TheGuide.Modules
 			await guild.DownloadUsersAsync();
 			foreach (var user in guild.Users)
 			{
-				var userJson = 
-					SubSystem.LoadSubUserJson(guild.Id, user.Id);
-
-				var roleIds = data.Select(x => x.Value);
-				if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+				if (SubSystem.jsonfiles(guild.Id)
+					.Any(x => 
+					x == $"{user.Id}")) // fixes errors not finding file, only for found files
 				{
-					userJson.SubRoles =
-						userJson.SubRoles
-							.Except(data.Select(x => x.Value))
-							.ToList();
+					var userJson =
+						SubSystem.LoadSubUserJson(guild.Id, user.Id);
 
-					await userJson.Write(guild.Id, true);
+					var roleIds = data.Select(x => x.Value);
+					if (userJson.SubRoles.Any(x => roleIds.Contains(x)))
+					{
+						userJson.SubRoles =
+							userJson.SubRoles
+								.Except(data.Select(x => x.Value))
+								.ToList();
 
-					var remRoles =
-						data
-							.Where(x =>
-								user.Guild.GetRole(x.Value) != null)
-							.Select(x =>
-								user.Guild.GetRole(x.Value))
-							.ToArray();
+						await userJson.Write(guild.Id, true);
 
-					if (remRoles.Any())
-						await user.ChangeRolesAsync(remove: remRoles);
+						var remRoles =
+							data
+								.Where(x =>
+									user.Guild.GetRole(x.Value) != null)
+								.Select(x =>
+									user.Guild.GetRole(x.Value))
+								.ToArray();
+
+						if (remRoles.Any())
+							await user.ChangeRolesAsync(remove: remRoles);
+					}
 				}
 			}
 

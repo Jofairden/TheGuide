@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using TheGuide.Preconditions;
 using TheGuide.Systems;
-using TheGuide.Systems.Snowflake;
 
 namespace TheGuide.Modules
 {
@@ -22,6 +17,12 @@ namespace TheGuide.Modules
 		{
 			this.service = service;
 			this.map = map;
+		}
+
+		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
+		{
+			var msg = message.Unmention();
+			return base.ReplyAsync(msg, isTTS, embed, options);
 		}
 
 		[Command("setrole")]

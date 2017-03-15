@@ -5,10 +5,10 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 
@@ -18,6 +18,11 @@ namespace TheGuide
 	public static class Tools
 	{
 		public static Random Rand = new Random();
+
+		public static bool Cap2000Compare(this string source, string comparison)
+		{
+			return string.Equals(source.RemoveWhitespace().Cap(2000), comparison, StringComparison.CurrentCultureIgnoreCase);
+		}
 
 		public static bool AreSorted<T>(IEnumerable<T> ids)
 		{
@@ -65,10 +70,7 @@ namespace TheGuide
 		public static ulong GiB(this ulong value) => value.MiB() * 1024;
 		public static ulong GB(this ulong value) => value.MB() * 1000;
 
-		public static string Unmention(this string str) => str.Replace("@", "ම");
-
-		public static string SanitizeMentions(this string str) =>
-			str.Replace("@everyone", "මeveryοne").Replace("@here", "@һere");
+		public static string Unmention(this string str) => str.Replace("@everyone", "මeveryone").Replace("@here", "මhere");
 
 		public static string GenFullName(string username, string discriminator) =>
 			$"{username}#{discriminator}";
@@ -214,6 +216,7 @@ namespace TheGuide
 			return d[n, m];
 		}
 
+		//unused
 		/// <summary>
 		/// returns an IEnumerable with randomized element order
 		/// </summary>
@@ -243,6 +246,7 @@ namespace TheGuide
 			}
 		}
 
+		//unused
 		public static IMessage DeleteAfter(this IUserMessage msg, int ms)
 		{
 			Task.Run(async () =>

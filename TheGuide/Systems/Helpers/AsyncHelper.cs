@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Threading.Tasks;
 
 namespace TheGuide.Systems.Helpers
 {
+	//unused, for now
 	public static class AsyncHelper
 	{
 		public static Task CreateFileAsync(string path)
