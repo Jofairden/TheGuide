@@ -38,7 +38,7 @@ namespace TheGuide.Systems
 			Path.Combine(AppContext.BaseDirectory, "dist", "configs");
 
 	    public static ConfigJson config(ulong guid) =>
-		    JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(Path.Combine(rootDir, $"{guid}.json")));
+		    config(Path.Combine(rootDir, $"{guid}.json"));
 
 		public static ConfigJson config(string path) =>
 			JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(path));
@@ -54,21 +54,20 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Maintains content
 		/// </summary>
-		public static async Task Maintain(IDiscordClient client)
+		public static Task Maintain(IDiscordClient client)
 		{
-			await Task.Run(() =>
+			return Task.Run(() =>
 			{
-				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
 
-				foreach (var guild in (client as DiscordSocketClient).Guilds)
+				var discordSocketClient = client as DiscordSocketClient;
+				if (discordSocketClient == null) return;
+				foreach (var guild in discordSocketClient.Guilds)
 				{
 					var path = Path.Combine(rootDir, $"{guild.Id}.json");
-					if (!File.Exists(path))
-					{
-						var json = new ConfigJson {guid = guild.Id};
-						File.WriteAllText(path, json.SerializeToJson());
-					}
+					if (File.Exists(path)) continue;
+					var json = new ConfigJson {guid = guild.Id};
+					File.WriteAllText(path, json.SerializeToJson());
 				}
 			});
 		}
@@ -76,25 +75,18 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Creates a config
 		/// </summary>
-		public static async Task<GuideResult> WriteConfig(ulong guid, ConfigJson input, bool check = true)
+		public static Task<GuideResult> WriteConfig(ulong guid, ConfigJson input, bool check = true)
 		{
-			await Task.Yield();
-			if (check && configs().Any(t => t == guid))
-				return new GuideResult($"Config for {guid} not found");
-			var result = await WriteConfig(guid, input);
-			return result;
-		}
-
-		/// <summary>
-		/// Writes a config
-		/// </summary>
-		public static async Task<GuideResult> WriteConfig(ulong guid, ConfigJson input)
-		{
-			await Task.Yield();
-			File.WriteAllText(Path.Combine(rootDir, $"{guid}.json"), input.SerializeToJson());
-			var result = new GuideResult();
-			result.SetIsSuccess(configs().Any(t => t == guid));
-			return result;
+			return Task.Run(() =>
+			{
+				if (check
+					&& !configs().Contains(guid))
+					return new GuideResult($"Config for {guid} not found");
+				File.WriteAllText(Path.Combine(rootDir, $"{guid}.json"), input.SerializeToJson());
+				var result = new GuideResult();
+				result.SetIsSuccess(configs().Contains(guid));
+				return result;
+			});
 		}
 	}
 }

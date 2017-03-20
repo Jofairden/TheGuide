@@ -135,7 +135,7 @@ namespace TheGuide
 				}
 			},
 			null,
-			TimeSpan.FromSeconds(5),
+			TimeSpan.FromSeconds(0),
 			TimeSpan.FromMinutes(15));
 
 			await Task.Delay(-1);
@@ -145,7 +145,7 @@ namespace TheGuide
 		{
 			if (!client.CurrentUser.Game.HasValue)
 			{
-				await client.SetGameAsync("READY");
+				await client.SetGameAsync("READY " + Program.version);
 				await Task.Delay(5000);
 				await client.SetGameAsync("Terraria");
 			}

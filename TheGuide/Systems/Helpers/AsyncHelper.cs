@@ -53,15 +53,9 @@ namespace TheGuide.Systems.Helpers
 				Directory.CreateDirectory(outputPath);
 
 				foreach (FileInfo file in dirInfo.EnumerateFiles())
-				{
 					using (FileStream SourceStream = file.OpenRead())
-					{
-						using (FileStream DestinationStream = File.Create(outputPath + file.Name))
-						{
-							await SourceStream.CopyToAsync(DestinationStream);
-						}
-					}
-				}
+					using (FileStream DestinationStream = File.Create(outputPath + file.Name))
+						await SourceStream.CopyToAsync(DestinationStream);
 			}
 		}
 	}

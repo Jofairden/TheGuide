@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -164,7 +165,7 @@ namespace TheGuide.Modules
 						$" [ID: {application.Owner.Id}]\n" +
 						$"- Library: Discord.Net ({DiscordConfig.Version})" +
 						$" [API: {DiscordConfig.APIVersion}]\n" +
-						$"- Runtime: {AppContext.TargetFrameworkName} {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture} \n" +
+						$"- Runtime: {AppContext.TargetFrameworkName} (r-{Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion}) {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture} \n" +
 						$"- Uptime: {Tools.GetUptime()} (dd\\.hh\\:mm\\:ss)\n" +
 						$"- Bot version: {Program.version}";
 
@@ -172,14 +173,14 @@ namespace TheGuide.Modules
 			{
 				msg += $"\n\n**Stats**\n" +
 						$"- Heap Size: {Tools.GetHeapSize()} MB\n" +
-						$"- Guilds: {client?.Guilds.Count}\n" +
-						$"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
-						$" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
-						$" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
-						$"- Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
-						$"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
-						$"- Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
-						$" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]";
+						$"- Guilds: {client?.Guilds.Count ?? 0}\n" +
+						$"- Channels: {client?.Guilds.Sum(g => g.Channels.Count) ?? 0}" +
+						$" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count) ?? 0}]" +
+						$" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count) ?? 0}]\n" +
+						$"- Roles: {client?.Guilds.Sum(g => g.Roles.Count) ?? 0}\n" +
+						$"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count) ?? 0}\n" +
+						$"- Users: {client?.Guilds.Sum(g => g.MemberCount) ?? 0}" +
+						$" [Cached: {client?.Guilds.Sum(g => g.Users.Count) ?? 0}]";
 			}
 
 			await ReplyAsync(msg.Cap(2000));
@@ -196,7 +197,7 @@ namespace TheGuide.Modules
 		{
 			var client = (Context.Client as DiscordSocketClient);
 			var sb = new StringBuilder();
-			if (username.StartsWith("role:", StringComparison.CurrentCultureIgnoreCase))
+			if (username.ICStartsWith("role:"))
 			{
 				var role = username.Substring(5);
 				// Get all users in guilds with this role
@@ -206,7 +207,7 @@ namespace TheGuide.Modules
 							g.Users.Where(u =>
 								g.Roles.Any(r =>
 									!r.IsEveryone
-									&& r.Name.Contains(role, StringComparison.CurrentCultureIgnoreCase)
+									&& r.Name.ICContains(role)
 									&& u.Roles.Any(x => x.Id == r.Id))))
 						.ToList();
 
@@ -240,8 +241,8 @@ namespace TheGuide.Modules
 							g =>
 								g.Users.Where(
 									u =>
-										string.Equals(u.Username, username, StringComparison.CurrentCultureIgnoreCase) ||
-										string.Equals(u.Nickname, username, StringComparison.CurrentCultureIgnoreCase)))
+										u.Username.ICEquals(username)||
+										u.Nickname.ICEquals(username)))
 						.ToList();
 
 				var predicate = $"``{username} in:name,nickname from:guilds``";
@@ -288,13 +289,17 @@ namespace TheGuide.Modules
 			var result = await ShowSimilarMods(mod);
 
 			if (result)
+			{
+				var msg = await ReplyAsync("Generating widget...");
 				using (var client = new System.Net.Http.HttpClient())
-				using (var stream = await client.GetStreamAsync($"{ModSystem.widgetUrl}{mod}.png"))
 				{
-					var sendFileAsync = Context.Channel?.SendFileAsync(stream, $"{mod}.png", $"Widget for ``{mod}``");
-					if (sendFileAsync != null)
-						await sendFileAsync;
+					var response = await client.GetByteArrayAsync($"{ModSystem.widgetUrl}{mod}.png");
+					using (var stream = new MemoryStream(response))
+						await Context.Channel.SendFileAsync(stream, $"widget-{mod}.png");
 				}
+				await msg.DeleteAsync();
+			}
+			
 		}
 
 		/// <summary>
@@ -568,11 +573,8 @@ namespace TheGuide.Modules
 
 			if (mods.Any()) return true;
 
-			var msg =
-				$"Mod with that name doesn\'t exist" +
-				$"\nDid you possibly mean any of these?\n\n";
-
-			var modMsg = "No mods found..."; ;
+			const string msg = "Mod with that name doesn\'t exist";
+			var modMsg = "\nNo similar mods found..."; ;
 
 			// Find similar mods
 
@@ -584,7 +586,7 @@ namespace TheGuide.Modules
 
 			if (similarMods.Any())
 			{
-				modMsg = similarMods.PrettyPrint();
+				modMsg = "\nDid you possibly mean any of these?\n\n" + similarMods.PrettyPrint();
 				// Make sure message doesn't exceed discord's max msg length
 				if (modMsg.Length > 2000)
 				{
@@ -723,11 +725,11 @@ namespace TheGuide.Modules
 						usableCommands.Add(x);
 				});
 
-				await ReplyAsync(usableCommands.Any() ? 
+				await ReplyAsync(usableCommands.Any() ?
 							($"{headerTxt}\n" +
 							usableCommands.Select(x => $"{x.Name}").PrettyPrint()).Cap(2000)
 							: $"No usable commands found.");
-				
+
 			}
 			else
 			{
@@ -772,7 +774,7 @@ namespace TheGuide.Modules
 							$"**Module **: `{command.Module.Name}`\n" +
 							$"**Command**: `{command.Aliases.First()}`" +
 							$"{(aliases.Any() ? $"\n**Aliases**: {aliases.PrettyPrint()}" : "")}\n" +
-							$"{(command.Summary?.Length > 0 ? $"**Summary**: ``{command.Summary}`\n" : "")}" +
+							$"{(command.Summary?.Length > 0 ? $"**Summary**: `{command.Summary}`\n" : "")}" +
 							$"{(command.Remarks?.Length > 0 ? $"**Usage**: {usage}\n" : "")}" +
 							$"**Usable by {sender?.Username}**: `{(result.IsSuccess ? "yes" : "no")}`");
 				}

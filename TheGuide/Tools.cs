@@ -22,6 +22,12 @@ namespace TheGuide
 		public static bool ICEquals(this string source, string comparison) =>
 			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
 
+		public static bool ICContains(this string source, string comparison) =>
+			source.Contains(comparison, StringComparison.OrdinalIgnoreCase);
+
+		public static bool ICStartsWith(this string source, string comparison) =>
+			source.StartsWith(comparison, StringComparison.OrdinalIgnoreCase);
+
 		public static bool AreSorted<T>(IEnumerable<T> ids)
 		{
 			var enumerable = ids as T[] ?? ids.ToArray();

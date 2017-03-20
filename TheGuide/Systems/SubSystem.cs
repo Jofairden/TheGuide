@@ -84,16 +84,10 @@ namespace TheGuide.Systems
 		/// </summary>
 		public static async Task Maintain(IDiscordClient client)
 		{
-			await Task.Run(async () =>
-			{
-				Directory.CreateDirectory(rootDir);
-				var discordSocketClient = client as DiscordSocketClient;
-				if (discordSocketClient != null)
-					foreach (var guild in discordSocketClient.Guilds)
-					{
-						await MaintainServer(guild);
-					}
-			});
+			var discordSocketClient = client as DiscordSocketClient;
+			if (discordSocketClient != null)
+				foreach (var guild in discordSocketClient.Guilds)
+					await MaintainServer(guild);
 		}
 
 		public static async Task MaintainServer(SocketGuild guild)
@@ -103,36 +97,35 @@ namespace TheGuide.Systems
 			if (!File.Exists(Path.Combine(path, "server.json")))
 			{
 				await CreateServerSub(guild.Id, new SubServerJson {GUID = guild.Id});
+				return;
 			}
-			else
-			{
-				var json = LoadSubServerJson(guild.Id);
 
-				// Try to remove subscriptions with non existing roles
-				var groles = guild.Roles.Where(r => !r.IsEveryone).Select(x => x.Id);
-				var roleIds = json.Data.Select(x => x.Value).Except(groles).ToList();
-				var keys = roleIds.Select(id => json.Data.First(y => y.Value == id).Key);
+			var json = LoadSubServerJson(guild.Id);
 
-				// Try to remove subscriptions with non existing channels
-				var gchannels = guild.TextChannels.Select(x => x.Id);
-				var channelIds = json.Data.Select(x => x.Key).Except(gchannels).ToList();
-				keys = keys.Union(channelIds.Select(id => json.Data.First(y => y.Key == id).Key));
+			// Try to remove subscriptions with non existing roles
+			var groles = guild.Roles.Where(r => !r.IsEveryone).Select(x => x.Id);
+			var roleIds = json.Data.Select(x => x.Value).Except(groles).ToList();
+			var keys = roleIds.Select(id => json.Data.First(y => y.Value == id).Key);
 
-				var totalRoleIds = json.Data.Where(x => keys.Contains(x.Key)).Select(x => x.Value).ToList();
+			// Try to remove subscriptions with non existing channels
+			var gchannels = guild.TextChannels.Select(x => x.Id);
+			var channelIds = json.Data.Select(x => x.Key).Except(gchannels).ToList();
+			keys = keys.Union(channelIds.Select(id => json.Data.First(y => y.Key == id).Key));
 
-				// Remove keys from data
-				keys.ToList()
-					.ForEach(key =>
-						json.Data.Remove(key));
-				// Write data
-				await CreateServerSub(guild.Id, json);
+			var totalRoleIds = json.Data.Where(x => keys.Contains(x.Key)).Select(x => x.Value).ToList();
 
-				// Remove roles which aren't in a subscription anymore
-				totalRoleIds
-					.ForEach(async x =>
-						await guild.GetRole(x).DeleteAsync());
+			// Remove keys from data
+			keys.ToList()
+				.ForEach(key =>
+					json.Data.Remove(key));
+			// Write data
+			await CreateServerSub(guild.Id, json);
 
-			}
+			// Remove roles which aren't in a subscription anymore
+			totalRoleIds
+				.ForEach(async x =>
+					await guild.GetRole(x).DeleteAsync());
+
 			await guild.DownloadUsersAsync();
 			foreach (var user in guild.Users)
 				await MaintainUser(guild, user);

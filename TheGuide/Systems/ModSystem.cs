@@ -36,7 +36,6 @@ namespace TheGuide.Systems
 		public static async Task Maintain(IDiscordClient client)
 		{
 			// Create dirs
-			//Directory.CreateDirectory(rootDir); // redundant
 			Directory.CreateDirectory(modDir);
 
 			var path = Path.Combine(modDir, "date.txt");

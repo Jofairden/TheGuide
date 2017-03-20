@@ -82,8 +82,6 @@ namespace TheGuide.Systems
 		{
 			await Task.Run(() =>
 			{
-				Directory.CreateDirectory(rootDir);
-
 				var discordSocketClient = client as DiscordSocketClient;
 				if (discordSocketClient != null)
 					foreach (var guild in discordSocketClient.Guilds)
