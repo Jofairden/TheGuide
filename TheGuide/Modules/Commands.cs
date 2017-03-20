@@ -309,7 +309,7 @@ namespace TheGuide.Modules
 		[Alias("gh")]
 		[Summary("Returns a search link for github searching for repositories matching your predicate")]
 		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
-		public async Task Github([Remainder][Summary("the predicate")]string rem) =>
+		public async Task Github([Remainder]string rem) =>
 			await ReplyAsync($"Uri: https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories");
 
 		/// <summary>
@@ -319,22 +319,23 @@ namespace TheGuide.Modules
 		[Alias("item")]
 		[Summary("Searches for a vanilla item by ID or name")]
 		[Remarks("itemid <name> --OR-- itemid <id>\nitemid Wooden Sword --OR-- itemid 24")]
-		public async Task Itemid([Remainder][Summary("the item name or id")] string name)
+		public async Task Itemid([Remainder]string name)
 		{
-			string replyText = $"{name} not found.";
 			short parsed16Int;
-			string usename = name.RemoveWhitespace().ToUpper();
+			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, short> kvp;
-
-			if (short.TryParse(usename, out parsed16Int) && Program.itemConsts.ContainsValue(parsed16Int))
+			if (short.TryParse(usename, out parsed16Int) 
+				&& Program.itemConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.itemConsts.FirstOrDefault(x => x.Value == parsed16Int);
 			}
 			else if (Program.itemConsts.ContainsKey(usename))
 			{
-				kvp = Program.itemConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
+				kvp = Program.itemConsts.FirstOrDefault(x => x.Key.ICEquals(usename));
 			}
-			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
+			string replyText = kvp.IsDefault()
+				? $"`{name}` not found."
+				: $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -347,9 +348,8 @@ namespace TheGuide.Modules
 		[Remarks("dustid <name> --OR-- dustid <id>\ndustid Fire --OR-- dustid 6")]
 		public async Task Dustid([Remainder][Summary("the dust name or id")] string name)
 		{
-			string replyText = $"{name} not found.";
 			short parsed16Int;
-			string usename = name.RemoveWhitespace().ToUpper();
+			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, short> kvp;
 
 			if (short.TryParse(usename, out parsed16Int) && Program.dustConsts.ContainsValue(parsed16Int))
@@ -358,10 +358,11 @@ namespace TheGuide.Modules
 			}
 			else if (Program.dustConsts.ContainsKey(usename))
 			{
-				kvp = Program.dustConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
+				kvp = Program.dustConsts.FirstOrDefault(x => x.Key.ICEquals(usename));
 			}
-			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
-
+			string replyText = kvp.IsDefault()
+				? $"`{name}` not found."
+				: $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -374,9 +375,8 @@ namespace TheGuide.Modules
 		[Remarks("chainid <name> --OR-- chainid <id>\nchainid SilkRope --OR-- chainid 4")]
 		public async Task Chainid([Remainder][Summary("the chain name or id")] string name)
 		{
-			string replyText = $"{name} not found.";
 			short parsed16Int;
-			string usename = name.RemoveWhitespace().ToUpper();
+			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, short> kvp;
 
 			if (short.TryParse(usename, out parsed16Int) && Program.chainConsts.ContainsValue(parsed16Int))
@@ -385,10 +385,11 @@ namespace TheGuide.Modules
 			}
 			else if (Program.chainConsts.ContainsKey(usename))
 			{
-				kvp = Program.chainConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
+				kvp = Program.chainConsts.FirstOrDefault(x => x.Key.ICEquals(usename));
 			}
-			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
-
+			string replyText = kvp.IsDefault()
+				? $"`{name}` not found."
+				: $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -401,7 +402,6 @@ namespace TheGuide.Modules
 		[Remarks("ammoid <name> --OR-- ammoid <id>\nammoid Bullet --OR-- ammoid 97")]
 		public async Task Ammoid([Remainder][Summary("the ammo name or id")] string name)
 		{
-			string replyText = $"{name} not found.";
 			int parsed16Int;
 			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, int> kvp;
@@ -412,9 +412,11 @@ namespace TheGuide.Modules
 			}
 			else if (Program.ammoConsts.ContainsKey(usename))
 			{
-				kvp = Program.ammoConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
+				kvp = Program.ammoConsts.FirstOrDefault(x => x.Key.ICEquals(usename));
 			}
-			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
+			string replyText = kvp.IsDefault()
+				? $"`{name}` not found."
+				: $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
@@ -427,7 +429,6 @@ namespace TheGuide.Modules
 		[Remarks("buffid <name> --OR-- buffid <id>\nbuffid IronSkin --OR-- ammoid 5")]
 		public async Task Buffid([Remainder][Summary("the buff name or id")] string name)
 		{
-			string replyText = $"{name} not found.";
 			int parsed16Int;
 			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, int> kvp;
@@ -438,10 +439,11 @@ namespace TheGuide.Modules
 			}
 			else if (Program.buffConsts.ContainsKey(usename))
 			{
-				kvp = Program.buffConsts.FirstOrDefault(x => string.Equals(x.Key, usename, StringComparison.CurrentCultureIgnoreCase));
+				kvp = Program.buffConsts.FirstOrDefault(x => x.Key.ICEquals(usename));
 			}
-			replyText = $"{kvp.Key} found with ID: {kvp.Value}";
-
+			string replyText = kvp.IsDefault()
+				? $"`{name}` not found."
+				: $"{kvp.Key} found with ID: {kvp.Value}";
 			await ReplyAsync(replyText);
 		}
 
