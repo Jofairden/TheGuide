@@ -22,3 +22,4 @@ Removed some formatting mistakes from changelog files
 Added ICEquals helper method, some calls may not be replaced yet, will over time
 Improved some Systems code, lots of other code improvements
 Made modlist download call send v0.9.2 as modloaderversion, should always work
+Bot's game is now 'READY' for 5000ms on boot, then 'Terraria'

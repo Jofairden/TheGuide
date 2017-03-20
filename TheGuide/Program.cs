@@ -92,6 +92,7 @@ namespace TheGuide
 			client.UserJoined += Client_UserJoined;
 			client.UserLeft += Client_UserLeft;
 			client.ChannelDestroyed += Client_ChannelDestroyed;
+			client.Ready += Client_Ready;
 
 			// Connection
 			// Token.cs is left out intentionally
@@ -140,6 +141,16 @@ namespace TheGuide
 			await Task.Delay(-1);
 		}
 
+		private async Task Client_Ready()
+		{
+			if (!client.CurrentUser.Game.HasValue)
+			{
+				await client.SetGameAsync("READY");
+				await Task.Delay(5000);
+				await client.SetGameAsync("Terraria");
+			}
+		}
+
 		private async Task Client_ChannelDestroyed(SocketChannel c)
 		{
 			var ch = c as SocketGuildChannel;
@@ -186,20 +197,6 @@ namespace TheGuide
 
 		private async Task Client_LatencyUpdated(int i, int j)
 		{
-			if (client == null) return;
-
-			if (!client.CurrentUser.Game.HasValue)
-			{
-				await Task.Run(async () =>
-				{
-					await client.SetGameAsync("READY");
-					await Task.Delay(7000);
-					await client.SetGameAsync("Terraria");
-				});
-
-				return;
-			}
-
 			await client.SetStatusAsync(
 				//maintenanceMode ? UserStatus.DoNotDisturb :
 				(client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
