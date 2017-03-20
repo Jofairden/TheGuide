@@ -8,6 +8,7 @@ Fixed help command NREs and styling issues (came along with lib upgrade)
 Fixed ModSystem not writing data to date.txt, causing too frequent modlist downloads
 Fixed bot event registers
 Fixed widget command not being able to send file without caption (read: avoiding bug in lib)
+Fixed xID commands feedback handling when not found
 
 `Commands`
 Added target framework name to 'Runtime' header in the ?info command
@@ -19,10 +20,10 @@ Changelog DM feedback now also sends a list of other available changelogs
 `Other`
 Update to beta build 00642 of lib
 Now using and showcasing Addons.EmojiTools (unicode conversion)
-General small updates, such as a few nullchecks
+General small updates, such as some nullchecks
 Replaced 'Program.AssemblyDirectory' references with 'AppContent.BaseDirectory' (.net 4.6)
 Removed some formatting mistakes from changelog files
-Added ICEquals, ICContains, ICStartsWith helper methods, some calls may not be replaced yet, will over time
+Added ICEquals, ICContains, ICStartsWith, IsDefault<T> where T : struct helper methods, some calls may not be replaced yet, will over time
 Improved some Systems code, lots of other code improvements
-Made modlist download call send v0.9.2 as modloaderversion, should always work
-Bot's game is now 'READY' for 5000ms on boot, then 'Terraria'
+Made modlist download call send v0.9.2 as modloaderversion, should always work (according to jopo)
+Bot's game is now 'READY <version>' for 5000ms on boot, then 'Terraria'
