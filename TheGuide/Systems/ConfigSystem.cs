@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,17 +19,11 @@ namespace TheGuide.Systems
 				listenCh = source.listenCh;
 				admRoles = source.admRoles;
 			}
-			else
-			{
-				guid = default(ulong);
-				listenCh = default(ulong);
-				admRoles = new List<ulong>();
-			}
 		}
 
-		public ulong guid;
-		public List<ulong> admRoles;
-		public ulong listenCh;
+		public ulong guid { get; set; }
+		public List<ulong> admRoles { get; set; } = new List<ulong>();
+		public ulong listenCh { get; set; }
 
 		public override void Validate(ulong? id)
 		{
@@ -40,7 +35,7 @@ namespace TheGuide.Systems
 	public static class ConfigSystem
     {
 		private static string rootDir =>
-			Path.Combine(Program.AssemblyDirectory, "dist", "configs");
+			Path.Combine(AppContext.BaseDirectory, "dist", "configs");
 
 	    public static ConfigJson config(ulong guid) =>
 		    JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(Path.Combine(rootDir, $"{guid}.json")));

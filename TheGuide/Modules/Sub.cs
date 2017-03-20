@@ -12,27 +12,21 @@ namespace TheGuide.Modules
 {
 	[Group("unsub")]
 	[Name("unsub")]
-	public class Unsub : ModuleBase
+	public class Unsub : GuideModuleBase<SocketCommandContext>
 	{
-		private readonly CommandService service;
-		private readonly IDependencyMap map;
+		private readonly CommandService _service;
+		private readonly IDependencyMap _map;
 
 		public Unsub(CommandService service, IDependencyMap map)
 		{
-			this.service = service;
-			this.map = map;
-		}
-
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
-		{
-			var msg = message.Unmention();
-			return base.ReplyAsync(msg, isTTS, embed, options);
+			_service = service;
+			_map = map;
 		}
 
 		[Name("no-help")]
 		[Command("help")]
 		public async Task Help([Remainder] string rem =null) =>
-			await service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", map, MultiMatchHandling.Best);
+			await _service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", _map, MultiMatchHandling.Best);
 
 		[Name("no-help")]
 		[Command, Priority(0)]
@@ -41,25 +35,25 @@ namespace TheGuide.Modules
 
 		[Name("no-help")]
 		[Command, Priority(1)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task UnsubCommand(IUser user, [Remainder] ITextChannel channel) =>
 			await TryUnsub(user, channel);
 
 		[Name("no-help")]
 		[Command, Priority(2)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task UnsubCommand(ITextChannel channel, [Remainder]IUser user) =>
 			await TryUnsub(user, channel);
 
 		[Name("no-help")]
 		[Command, Priority(3)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task UnsubCommand(IUser user, [Remainder]string rem)
 		{
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TryUnSubAll(user);
 			else
-				await service.ExecuteAsync(Context, "help unsub me", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, "help unsub me", _map, MultiMatchHandling.Best);
 		}
 
 		[Name("no-help"),Priority(0)]
@@ -75,18 +69,18 @@ namespace TheGuide.Modules
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TryUnSubAll(Context.User);
 			else
-				await service.ExecuteAsync(Context, "help unsub me", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, "help unsub me", _map, MultiMatchHandling.Best);
 		}
 
 		[Command("list"), Priority(0)]
 		[Summary("Lists all existing subscriptions of server or specified user")]
 		[Remarks("list [user]\nlist --OR-- list Jofairden")]
 		public async Task List([Remainder] string sub = null) =>
-			await service.ExecuteAsync(Context, $"sub list {sub ?? ""}");
+			await _service.ExecuteAsync(Context, $"sub list {sub ?? ""}");
 
 		[Command("list"), Priority(1)]
 		public async Task List([Remainder]IUser user) =>
-		await service.ExecuteAsync(Context, $"sub list {user.Id}");
+		await _service.ExecuteAsync(Context, $"sub list {user.Id}");
 
 		[Command("all"), Priority(0)]
 		[Summary("Unsubscribe yourself to all channels")]
@@ -96,7 +90,7 @@ namespace TheGuide.Modules
 
 		[Name("no-help"),Priority(1)]
 		[Command("all")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task All([Remainder]IUser user) =>
 			await TryUnSubAll(user);
 
@@ -121,7 +115,7 @@ namespace TheGuide.Modules
 					roles.Add(role);
 			});
 			if (roles.Any())
-				await (user as SocketGuildUser).ChangeRolesAsync(remove: roles);
+				await (user as SocketGuildUser).RemoveRolesAsync(roles);
 
 			userJson.SubRoles.Clear();
 			await userJson.Write(guild.Id, true);
@@ -150,7 +144,7 @@ namespace TheGuide.Modules
 
 			var role = (user as SocketGuildUser)?.Roles.FirstOrDefault(r => r.Id == roleID);
 			if (role != null)
-				await ((SocketGuildUser) user).RemoveRolesAsync(role);
+				await ((SocketGuildUser) user).RemoveRoleAsync(role);
 
 			userJson.SubRoles.Remove(roleID);
 			var result = await userJson.Write(guild.Id, true);
@@ -165,34 +159,28 @@ namespace TheGuide.Modules
 	/// </summary>
 	[Group("sub")]
 	[Name("sub")]
-	public class Sub : ModuleBase
+	public class Sub : GuideModuleBase<SocketCommandContext>
 	{
-		private readonly CommandService service;
-		private readonly IDependencyMap map;
+		private readonly CommandService _service;
+		private readonly IDependencyMap _map;
 
-		public Sub(CommandService service, IDependencyMap map)
+		public Sub(CommandService _service, IDependencyMap _map)
 		{
-			this.service = service;
-			this.map = map;
-		}
-
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
-		{
-			var msg = message.Unmention();
-			return base.ReplyAsync(msg, isTTS, embed, options);
+			this._service = _service;
+			this._map = _map;
 		}
 
 		[Name("no-help")]
 		[Command("help")]
 		public async Task Help([Remainder] string rem = null) =>
-			await service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", map, MultiMatchHandling.Best);
+			await _service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", _map, MultiMatchHandling.Best);
 
 		/// <summary>
 		/// Removes all sub roles from the guild, and any user files
 		/// </summary>
 		[Command("clearsubroles")]
 		[Alias("csr")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task ClearSubRoles()
 		{
 			var count = await TryClearSubRoles();
@@ -234,12 +222,12 @@ namespace TheGuide.Modules
 		[Summary("Will add/remove a certain role as 'admin' for Subsystem to server data")]
 		[Alias("makeadmin", "adminrole", "deleteadmin", "removeadmin", "deladmin", "remadmin", "admin")]
 		[Remarks("createadmin <role>\ncreateadmin @administrator")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task CreateAdmin([Remainder] IRole role = null)
 		{
 			if (role == null)
 			{
-				await service.ExecuteAsync(Context, $"help sub createadmin", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, $"help sub createadmin", _map, MultiMatchHandling.Best);
 				return;
 			}
 
@@ -271,12 +259,12 @@ namespace TheGuide.Modules
 		[Alias("remove")]
 		[Summary("Delete a subscription of a channel or subscriptions linked to role")]
 		[Remarks("delete <channel>\ndelete #github")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Delete([Remainder]ITextChannel channel = null)
 		{
 			if (channel == null)
 			{
-				await service.ExecuteAsync(Context, $"help sub delete", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, $"help sub delete", _map, MultiMatchHandling.Best);
 				return;
 			}
 			await TryDelete(channel);
@@ -288,12 +276,12 @@ namespace TheGuide.Modules
 		[Name("no-help")]
 		[Command("delete")]
 		[Alias("remove")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Delete([Remainder]IRole role = null)
 		{
 			if (role == null)
 			{
-				await service.ExecuteAsync(Context, $"help sub delete", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, $"help sub delete", _map, MultiMatchHandling.Best);
 				return;
 			}
 			await TryDelete(role);
@@ -305,7 +293,7 @@ namespace TheGuide.Modules
 		[Command("clear")]
 		[Summary("Delete all subscription data for guild")]
 		[Remarks("clear")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Clear()
 		{
 			var guild = Context.Guild as SocketGuild;
@@ -360,7 +348,7 @@ namespace TheGuide.Modules
 
 					// Remove roles
 					if (compliantRoles.Any())
-						await user.ChangeRolesAsync(remove: compliantRoles);
+						await user.RemoveRolesAsync(compliantRoles);
 				}
 			}
 
@@ -382,7 +370,7 @@ namespace TheGuide.Modules
 
 		[Name("no-help")]
 		[Command("all")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task All([Remainder]IUser user) =>
 			await TrySubAll(user);
 
@@ -399,7 +387,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command, Priority(1)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task SubCommand(IUser user, [Remainder] ITextChannel channel) =>
 			await TrySub(user, channel);
 
@@ -408,19 +396,19 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command, Priority(2)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task SubCommand(ITextChannel channel, [Remainder] IUser user) =>
 			await TrySub(user, channel);
 
 		[Name("no-help")]
 		[Command, Priority(3)]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task SubCommand(IUser user, [Remainder] string rem)
 		{
 			if (rem.RemoveWhitespace().ToLower() == "all")
 				await TrySubAll(user);
 			else
-				await service.ExecuteAsync(Context, "help sub", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, "help sub", _map, MultiMatchHandling.Best);
 		}
 
 		/// <summary>
@@ -441,7 +429,7 @@ namespace TheGuide.Modules
 			if (channel.RemoveWhitespace().ToLower() == "all")
 				await TrySubAll(Context.User);
 			else
-				await service.ExecuteAsync(Context, "help sub me", map, MultiMatchHandling.Best);
+				await _service.ExecuteAsync(Context, "help sub me", _map, MultiMatchHandling.Best);
 		}
 
 		/// <summary>
@@ -481,7 +469,7 @@ namespace TheGuide.Modules
 			if (user.RemoveWhitespace().ToLower() == "me")
 				await List(Context.User);
 			else
-				await service.ExecuteAsync(Context, "help module:sub command:list", map);
+				await _service.ExecuteAsync(Context, "help module:sub command:list", _map);
 		}
 
 		/// <summary>
@@ -520,7 +508,7 @@ namespace TheGuide.Modules
 		[Command("create")]
 		[Summary("Create a subscription, finds any channel/role by mention, name or ID")]
 		[Remarks("create <channel> <role>\ncreate #github @sub-github")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Create(ITextChannel channel, IRole role)
 		{
 			await TryCreate(channel, role);
@@ -531,7 +519,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command("create")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Create(IRole role, ITextChannel channel)
 		{
 			await Create(channel, role);
@@ -542,7 +530,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		[Name("no-help")]
 		[Command("create")]
-		[SubAdminAttr]
+		[SubAdmin]
 		public async Task Create(ITextChannel channel)
 		{
 			// find sub-role, not found => make it
@@ -616,7 +604,7 @@ namespace TheGuide.Modules
 								.ToArray();
 
 						if (remRoles.Any())
-							await user.ChangeRolesAsync(remove: remRoles);
+							await user.RemoveRolesAsync(remRoles);
 					}
 				}
 			}
@@ -687,7 +675,7 @@ namespace TheGuide.Modules
 								.ToArray();
 
 						if (remRoles.Any())
-							await user.ChangeRolesAsync(remove: remRoles);
+							await user.RemoveRolesAsync(remRoles);
 					}
 				}
 			}
@@ -786,7 +774,7 @@ namespace TheGuide.Modules
 
 				if (roles.Any())
 				{
-					await (user as IGuildUser).ChangeRolesAsync(add: roles.AsEnumerable());
+					await (user as IGuildUser).AddRolesAsync(roles.AsEnumerable());
 					userJson.SubRoles =
 						userJson.SubRoles
 							.Union(roles.Select(x => x.Id))
@@ -842,7 +830,7 @@ namespace TheGuide.Modules
 
 			// Sub to channel
 			var roles = new List<IRole> {role};
-			await (user as IGuildUser).ChangeRolesAsync(add: roles);
+			await (user as IGuildUser).AddRolesAsync(roles);
 			userJson.SubRoles = userJson.SubRoles.Union(roles.Select(x => x.Id)).ToList();
 
 			var result = await userJson.Write(guild.Id, true);

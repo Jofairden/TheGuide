@@ -18,7 +18,7 @@ namespace TheGuide.Systems
 		internal const string hotUrl = "http://javid.ddns.net/tModLoader/tools/hottop10.php";
 
 		private static string rootDir =>
-			Path.Combine(Program.AssemblyDirectory, "dist");
+			Path.Combine(AppContext.BaseDirectory, "dist");
 
 		private static string modDir =>
 			Path.Combine(rootDir, "mods");
@@ -35,40 +35,36 @@ namespace TheGuide.Systems
 		/// </summary>
 		public static async Task Maintain(IDiscordClient client)
 		{
-			await Task.Run(async () =>
+			// Create dirs
+			//Directory.CreateDirectory(rootDir); // redundant
+			Directory.CreateDirectory(modDir);
+
+			var path = Path.Combine(modDir, "date.txt");
+			var dateDiff = TimeSpan.MinValue;
+
+			// Data.txt present, read
+			if (File.Exists(path))
 			{
-				// Create dirs
-				Directory.CreateDirectory(rootDir);
-				Directory.CreateDirectory(modDir);
+				var savedBinary = File.ReadAllText(path);
+				var savedBinaryDate = Tools.DateTimeFromUnixTimestampSeconds(long.Parse(savedBinary));
+				dateDiff = Tools.DateTimeFromUnixTimestampSeconds(Tools.GetCurrentUnixTimestampSeconds()) - savedBinaryDate;
+			}
 
-				var path = Path.Combine(modDir, "date.txt");
-				TimeSpan dateDiff = TimeSpan.MinValue;
+			// Needs to maintain data
+			if (dateDiff == TimeSpan.MinValue 
+				|| dateDiff.TotalDays > 1d)
+			{
+				var data = await DownloadData();
+				var modlist = JObject.Parse(data).SelectToken("modlist").ToObject<JArray>();
 
-				// Data.txt present, read
-				if (File.Exists(path))
+				foreach (var jtoken in modlist)
 				{
-					var savedBinary = File.ReadAllText(path);
-					var savedBinaryDate = Tools.DateTimeFromUnixTimestampSeconds(long.Parse(savedBinary));
-					dateDiff = Tools.DateTimeFromUnixTimestampSeconds(Tools.GetCurrentUnixTimestampSeconds()) - savedBinaryDate;
+					var name = jtoken.SelectToken("name").ToObject<string>().RemoveWhitespace();
+					File.WriteAllText(Path.Combine(modDir, $"{name}.json"), jtoken.ToString());
 				}
 
-				// Needs to maintain data
-				if (dateDiff == TimeSpan.MinValue || dateDiff.TotalDays > 1d)
-				{
-					var data = await DownloadData();
-					var json = JObject.Parse(data);
-					var modlist = (JArray)json.SelectToken("modlist");
-
-					foreach (var jtoken in modlist)
-					{
-						var name = jtoken.SelectToken("name").ToObject<string>().RemoveWhitespace();
-						File.WriteAllText(Path.Combine(modDir, $"{name}.json"), jtoken.ToString());
-					}
-
-					if (mods.Count() == modlist.Count)
-						File.WriteAllText(path, $"{Tools.GetCurrentUnixTimestampSeconds()}");
-				}
-			});
+				File.WriteAllText(path, $"{Tools.GetCurrentUnixTimestampSeconds()}");
+			}
 		}
 
 		/// <summary>
@@ -78,10 +74,11 @@ namespace TheGuide.Systems
 		{
 			using (var client = new System.Net.Http.HttpClient())
 			{
-				var version = await GetTMLVersion();
+				// Possibly redundant, jopo mentioned just posting 0.9.2 as verison should always work, harcoding 
+				//var version = await GetTMLVersion();
 				var values = new Dictionary<string, string>
 				{
-					{"modloaderversion", $"tModLoader {version}" }
+					{"modloaderversion", "tModLoader v0.9.2" }
 				};
 				var content = new System.Net.Http.FormUrlEncodedContent(values);
 				var response = await client.PostAsync(xmlUrl, content);

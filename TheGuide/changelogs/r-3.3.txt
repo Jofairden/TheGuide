@@ -1,12 +1,12 @@
 ﻿```r-3.3 Changelog```
-``Bugfixes``
+`Bugfixes`
 Fixed bug causing the bot to possibly crash upon errors while maintaining data (such as downloading mod data)
 Fixed mod data not mainting properly (new tml version in request) => need a cleaner way of getting latest tml version
 Fixed ?popular feedback styling
 Changed ?hot feedback styling to match ?popular (improved a bit)
 Fixed ?whois returning duplicate feedback
 
-``Other``
+`Other`
 Update bot to new lib build (1.0.0-rc-00621)
 The ?changelog list command provides clearer feedback
 **Made code which shows similar mods more intelligent** using LevenshteinDistance, it will no longer show an insane amount of mods when running ?mod e for example (msg cap still in place) The max distance formula is: modname.Length - 2
@@ -16,11 +16,11 @@ The ?ping command now also returns how long it took to post the feedback message
 Regular feedback for ?info is now shorter, use ?info expand to view more info, also improved the feedback
 Cleaned up subscription system code which has also fixed bugs
 
-``Specific ratelimits``
+`Specific ratelimits`
 Added specific ratelimits on certain commands (such as ?widget)
 For example, you can only generate up to 2 mod widgets per minute, to avoid mass requests. (stolen from Joe4evr)
 
-``Todo``
+`Todo`
 In next version, remove specific ratelimits from certain commands as the data can be moved to system classes which can maintain data (no mass requests to server)
 Improve GuideJson code (it's now a combination of unneeded things due to scrapped features)
 Find a neat way to get latest tml version

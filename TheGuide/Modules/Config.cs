@@ -8,25 +8,19 @@ namespace TheGuide.Modules
 {
 	[Group("config")]
 	[Name("config")]
-	public class Config : ModuleBase
+	public class Config : GuideModuleBase<SocketCommandContext>
 	{
-		private readonly CommandService service;
-		private readonly IDependencyMap map;
+		private readonly CommandService _service;
+		private readonly IDependencyMap _map;
 
 		public Config(CommandService service, IDependencyMap map)
 		{
-			this.service = service;
-			this.map = map;
-		}
-
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
-		{
-			var msg = message.Unmention();
-			return base.ReplyAsync(msg, isTTS, embed, options);
+			_service = service;
+			_map = map;
 		}
 
 		[Command("setrole")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task SetRole([Remainder] IRole role)
 		{
 			var config = ConfigSystem.config(Context.Guild.Id);
@@ -38,7 +32,7 @@ namespace TheGuide.Modules
 
 		[Command("addrole")]
 		[Alias("makerole")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task AddRole([Remainder] IRole role)
 		{
 			var config = ConfigSystem.config(Context.Guild.Id);
@@ -46,13 +40,17 @@ namespace TheGuide.Modules
 			{
 				config.admRoles.Add(role.Id);
 				await ConfigSystem.WriteConfig(Context.Guild.Id, config);
-				await ReplyAsync($"``{role.Name}`` is now a config admin role.");
+				await ReplyAsync($"`{role.Name}` is now a config admin role.");
+			}
+			else
+			{
+				await ReplyAsync($"`{role.Name}` was already a config admin role.");
 			}
 		}
 
 		[Command("removerole")]
 		[Alias("remrole", "delrole", "deleterole")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task RemoveRole([Remainder] IRole role)
 		{
 			var config = ConfigSystem.config(Context.Guild.Id);
@@ -60,7 +58,11 @@ namespace TheGuide.Modules
 			{
 				config.admRoles.Remove(role.Id);
 				await ConfigSystem.WriteConfig(Context.Guild.Id, config);
-				await ReplyAsync($"``{role.Name}`` is no longer a config admin role.");
+				await ReplyAsync($"`{role.Name}` is no longer a config admin role.");
+			}
+			else
+			{
+				await ReplyAsync($"`{role.Name}` is was not a config admin role, impossible to remove.");
 			}
 		}
 	}

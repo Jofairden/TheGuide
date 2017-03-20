@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System;
+using Discord;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using System.Collections.Generic;
@@ -18,12 +19,6 @@ namespace TheGuide.Systems
 				Data = new Dictionary<ulong, ulong>(source.Data);
 				AdminRoles = new List<ulong>(source.AdminRoles);
 			}
-			else
-			{
-				GUID = default(ulong);
-				Data = new Dictionary<ulong, ulong>();
-				AdminRoles = new List<ulong>();
-			}
 		}
 
 		public async Task<GuideResult> Write(ulong guid)
@@ -32,9 +27,9 @@ namespace TheGuide.Systems
 			return result;
 		}
 
-		public ulong GUID; // => guild ID
-		public Dictionary<ulong, ulong> Data; // key => channelID, value => roleID
-		public List<ulong> AdminRoles; // => roleID
+		public ulong GUID { get; set; } // => guild ID
+		public Dictionary<ulong, ulong> Data { get; set; } = new Dictionary<ulong, ulong>(); // key => channelID, value => roleID
+		public List<ulong> AdminRoles { get; set; } = new List<ulong>(); // => roleID
 
 		public override void Validate()
 		{
@@ -53,12 +48,6 @@ namespace TheGuide.Systems
 				UID = source.UID;
 				SubRoles = new List<ulong>(source.SubRoles);
 			}
-			else
-			{
-				Name = string.Empty;
-				UID = default(ulong);
-				SubRoles = new List<ulong>();
-			}
 		}
 
 		public async Task<GuideResult> Write(ulong guid, bool ignore = false)
@@ -67,9 +56,9 @@ namespace TheGuide.Systems
 			return result;
 		}
 
-		public string Name;
-		public ulong UID;
-		public List<ulong> SubRoles;
+		public string Name { get; set; }
+		public ulong UID { get; set; }
+		public List<ulong> SubRoles { get; set; }
 
 		public override void Validate()
 		{
@@ -82,10 +71,11 @@ namespace TheGuide.Systems
 	{
 		// ./assembly/dist/subs/
 		public static string rootDir =>
-			Path.Combine(Program.AssemblyDirectory, "dist", "subs");
+			Path.Combine(AppContext.BaseDirectory, "dist", "subs");
 
 		public static string[] jsonfiles(ulong guildid) =>
-			Directory.GetFiles(Path.Combine(rootDir, $"{guildid}"), "*.json")
+			Directory
+				.GetFiles(Path.Combine(rootDir, $"{guildid}"), "*.json")
 				.Select(Path.GetFileNameWithoutExtension)
 				.ToArray();
 
@@ -96,7 +86,6 @@ namespace TheGuide.Systems
 		{
 			await Task.Run(async () =>
 			{
-				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
 				var discordSocketClient = client as DiscordSocketClient;
 				if (discordSocketClient != null)
@@ -179,52 +168,59 @@ namespace TheGuide.Systems
 		/// <summary>
 		/// Tries to write a server.json file
 		/// </summary>
-		public static async Task<GuideResult> CreateServerSub(ulong guid, SubServerJson input)
+		public static Task<GuideResult> CreateServerSub(ulong guid, SubServerJson input)
 		{
-			var path = Path.Combine(rootDir, $"{guid}", $"server.json");
-			var json = input.Serialize();
-			await Task.Run(() => File.WriteAllText(path, json));
-			var raw = await Task.Run(() => File.ReadAllText(path));
-			var isSuccess = string.Equals(raw, json);
-			return
-				new GuideResult(
-				isSuccess ? null : "Server.json written was not the same as input.", isSuccess);
+			return Task.Run(() =>
+			{
+				var path = Path.Combine(rootDir, $"{guid}", $"server.json");
+				var json = input.Serialize();
+				File.WriteAllText(path, json);
+				var raw = File.ReadAllText(path);
+				var isSuccess = string.Equals(raw, json);
+				return
+					new GuideResult(
+						isSuccess ? null : "Server.json written was not the same as input.", isSuccess);
+			});
 		}
 
 		/// <summary>
 		/// Tries to write a uid.json file
 		/// </summary>
-		public static async Task<GuideResult> CreateUserSub(ulong guid, ulong uid, SubUserJson input, bool ignoreCheck = false)
+		public static Task<GuideResult> CreateUserSub(ulong guid, ulong uid, SubUserJson input, bool ignoreCheck = false)
 		{
-			await Task.Yield();
-			if (!ignoreCheck && SubUserExists(guid, uid))
+			return Task.Run(() =>
+			{
+				if (!ignoreCheck && SubUserExists(guid, uid))
+					return
+						new GuideResult(
+							"Sub already exists", false);
+
+				var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
+				var json = input.Serialize();
+				File.WriteAllText(path, json);
+				var raw = File.ReadAllText(path);
+				var isSuccess = string.Equals(raw, json);
 				return
 					new GuideResult(
-					"Sub already exists", false);
-
-			var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
-			var json = input.Serialize();
-			await Task.Run(() => File.WriteAllText(path, json));
-			var raw = await Task.Run(() => File.ReadAllText(path));
-			var isSuccess = string.Equals(raw, json);
-			return
-				new GuideResult(
-				isSuccess ? null : $"{uid}.json written was not the same as input.", isSuccess);
+						isSuccess ? null : $"{uid}.json written was not the same as input.", isSuccess);
+			});
 		}
 
 		/// <summary>
 		/// Tries to delete a uid.json file
 		/// </summary>
-		public static async Task<GuideResult> DeleteUserSub(ulong guid, ulong uid)
+		public static Task<GuideResult> DeleteUserSub(ulong guid, ulong uid)
 		{
-			await Task.Yield();
-			var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
-			if (SubUserExists(guid, uid))
-				await Task.Run(() => File.Delete(path));
-			var isSuccess = !File.Exists(path);
-			return
-				new GuideResult(
-					isSuccess ? null : $"{uid}.json still exists after deletion.", isSuccess);
+			return Task.Run(() =>
+			{
+				var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
+				if (SubUserExists(guid, uid))
+					File.Delete(path);
+				var isSuccess = !File.Exists(path);
+				return
+					new GuideResult(
+						isSuccess ? null : $"{uid}.json still exists after deletion.", isSuccess);
+			});
 		}
 
 		/// <summary>

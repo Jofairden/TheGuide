@@ -14,6 +14,7 @@ namespace TheGuide.Systems
 		void Validate(long? id);
 	}
 
+	//todo: improve
 	/// <summary>
 	/// GuideJson class
 	/// </summary>
@@ -24,7 +25,6 @@ namespace TheGuide.Systems
 
 		public virtual void Validate()
 		{
-
 		}
 
 		public virtual void Validate(long? id)

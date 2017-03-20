@@ -19,10 +19,8 @@ namespace TheGuide
 	{
 		public static Random Rand = new Random();
 
-		public static bool Cap2000Compare(this string source, string comparison)
-		{
-			return string.Equals(source.RemoveWhitespace().Cap(2000), comparison, StringComparison.CurrentCultureIgnoreCase);
-		}
+		public static bool ICEquals(this string source, string comparison) =>
+			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
 
 		public static bool AreSorted<T>(IEnumerable<T> ids)
 		{
@@ -45,7 +43,7 @@ namespace TheGuide
 		public static string FirstCharToUpper(this string input)
 		{
 			if (string.IsNullOrEmpty(input))
-				throw new ArgumentNullException("Input was null or empty!");
+				throw new ArgumentNullException();
 			return input.First().ToString().ToUpper() + input.Substring(1);
 		}
 
@@ -70,7 +68,8 @@ namespace TheGuide
 		public static ulong GiB(this ulong value) => value.MiB() * 1024;
 		public static ulong GB(this ulong value) => value.MB() * 1000;
 
-		public static string Unmention(this string str) => str.Replace("@everyone", "මeveryone").Replace("@here", "මhere");
+		public static string Unmention(this string str) => 
+			str.Replace("@​everyone", "@every\x200Bone").Replace("@here", "@he\x200Bre");
 
 		public static string GenFullName(string username, string discriminator) =>
 			$"{username}#{discriminator}";

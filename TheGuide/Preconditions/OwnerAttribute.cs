@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace TheGuide.Preconditions
 {
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-	public class OwnerAttr : PreconditionAttribute
+	[AttributeUsage(AttributeTargets.Method)]
+	public class OwnerAttribute : PreconditionAttribute
 	{
-		IApplication _appInfo;
+		private IApplication _appInfo;
 
 		public override async Task<PreconditionResult> CheckPermissions(ICommandContext context, CommandInfo command, IDependencyMap map)
 		{

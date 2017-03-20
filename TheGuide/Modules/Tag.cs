@@ -13,21 +13,15 @@ namespace TheGuide.Modules
 {
 	[Group("tag")]
 	[Name("tag")]
-	public class Tag : ModuleBase
+	public class Tag : GuideModuleBase<SocketCommandContext>
 	{
-		private readonly CommandService service;
-		private readonly IDependencyMap map;
+		private readonly CommandService _service;
+		private readonly IDependencyMap _map;
 
 		public Tag(CommandService service, IDependencyMap map)
 		{
-			this.service = service;
-			this.map = map;
-		}
-
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
-		{
-			var msg = message.Unmention();
-			return base.ReplyAsync(msg, isTTS, embed, options);
+			_service = service;
+			_map = map;
 		}
 
 		/// <summary>
@@ -36,7 +30,7 @@ namespace TheGuide.Modules
 		[Command("validate")]
 		[Summary("Validates all existing tags for this server")]
 		[Remarks("validate")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task Validate([Remainder] string rem = null)
 		{
 			var list = await TagSystem.ValidateTags(Context.Guild.Id);
@@ -57,7 +51,7 @@ namespace TheGuide.Modules
 		[Alias("make")]
 		[Summary("Creates a tag")]
 		[Remarks("create <name> <content>\ncreate ExampleTag Some output message.")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task Create(string name, [Remainder] string input)
 		{
 			var json = new TagJson()
@@ -86,7 +80,7 @@ namespace TheGuide.Modules
 		[Alias("remove")]
 		[Summary("deletes a tag")]
 		[Remarks("delete <name>\ndelete ExampleTag")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task Delete([Remainder] string name)
 		{
 			var result = await TagSystem.DeleteTag(Context.Guild.Id, name);
@@ -104,7 +98,7 @@ namespace TheGuide.Modules
 		[Alias("change", "alter")]
 		[Summary("Changes the content of a tag")]
 		[Remarks("edit <name> <content>\nedit ExampleTag some new output")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task Edit(string name, [Remainder] string input)
 		{
 			TagJson tag = TagSystem.getTag(Context.Guild.Id, name);
@@ -145,7 +139,7 @@ namespace TheGuide.Modules
 			tag = TagSystem.getTag(Context.Guild.Id, name);
 			if (tag != null)
 			{
-				if (await TagSystem.AttemptExecute(service, map, Context, name))
+				if (await TagSystem.AttemptExecute(_service, _map, Context, name))
 					return;
 
 				affix = tag.Output;
@@ -201,7 +195,7 @@ namespace TheGuide.Modules
 		{
 			if (name == null)
 			{
-				await service.ExecuteAsync(Context, $"help module:tag command:info", map);
+				await _service.ExecuteAsync(Context, $"help module:tag command:info", _map);
 				return;
 			}
 

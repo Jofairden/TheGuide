@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.EmojiTools;
 using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json.Linq;
@@ -20,21 +21,15 @@ namespace TheGuide.Modules
 {
 	//todo: config: which module is 'default'?
 	[Name("default")]
-	public class Commands : ModuleBase
+	public class Commands : GuideModuleBase<SocketCommandContext>
 	{
-		private readonly CommandService service;
-		private readonly IDependencyMap map;
+		private readonly CommandService _service;
+		private readonly IDependencyMap _map;
 
 		public Commands(CommandService service, IDependencyMap map)
 		{
-			this.service = service;
-			this.map = map;
-		}
-
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null, RequestOptions options = null)
-		{
-			var msg = message.Unmention();
-			return base.ReplyAsync(msg, isTTS, embed, options);
+			_service = service;
+			_map = map;
 		}
 
 		/// <summary>
@@ -43,7 +38,7 @@ namespace TheGuide.Modules
 		[Command("snowflake"), Ratelimit(5, 2, Measure.Minutes)]
 		[Summary("Will generate up to 10 snowflake ids and guids")]
 		[Remarks("snowflake [amount]\nsnowflake 10")]
-		[ConfAdmAttr]
+		[ConfigAdmin]
 		public async Task SnowFlake([Remainder] int rem = 1)
 		{
 			rem = Math.Max(0, Math.Min(10, rem));
@@ -96,6 +91,7 @@ namespace TheGuide.Modules
 
 		}
 
+
 		/// <summary>
 		/// Returns bot changelog
 		/// </summary>
@@ -105,15 +101,14 @@ namespace TheGuide.Modules
 		[Remarks("changelog [value]\nchangelog --OR-- changelog list --OR-- changelog r-3.0")]
 		public async Task Changelog([Remainder] string rem = null)
 		{
-			string path;
-			if (rem != null && rem.Cap2000Compare("list"))
-			{
-				path = Path.Combine(Program.AssemblyDirectory, $"dist", $"changelogs");
-				var files =
-					Directory.GetFiles(path)
-						.Select(Path.GetFileNameWithoutExtension)
-						.ToArray();
+			var path = Path.Combine(AppContext.BaseDirectory, "dist", "changelogs");
+			var files =
+				Directory.GetFiles(path)
+					.Select(Path.GetFileNameWithoutExtension)
+					.ToArray();
 
+			if (rem != null && rem.Trim().ICEquals("list"))
+			{
 				await ReplyAsync(files.Any()
 					? $"Found changelogs:\n" +
 					files.PrettyPrint() +
@@ -124,21 +119,21 @@ namespace TheGuide.Modules
 
 			var changelogFile = rem?.RemoveWhitespace().ToLower() ?? Program.version;
 			// Replace \r\n with \n to save some string length
-			path = Path.Combine(Program.AssemblyDirectory, "dist", "changelogs", $"{changelogFile}.txt");
+			path = Path.Combine(AppContext.BaseDirectory, "dist", "changelogs", $"{changelogFile}.txt");
 			if (File.Exists(path))
 			{
 				var changelogTxt = File.ReadAllText(path).Replace("\r\n", "\n");
 				if (!string.IsNullOrEmpty(changelogTxt))
 				{
 					var ch = await Context.Message.Author.CreateDMChannelAsync();
-					foreach (var msg in changelogTxt.ChunksUpto(1999))
-						await ch.SendMessageAsync(msg);
-					await Context.Message.AddReactionAsync("👌"); // adds a reaction emoji
-					await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! 📚"); // emoji in message
+					changelogTxt.ChunksUpto(2000).ToList().ForEach(async x => await ch.SendMessageAsync(x));
+					await ch.SendMessageAsync($"Other changelogs:\n{files.Where(x => !x.ICEquals(changelogFile)).PrettyPrint()}");
+					await Context.Message.AddReactionAsync(UnicodeEmoji.FromText(":ok_hand:")); // adds a reaction emoji
+					await ReplyAsync($"{Context.Message.Author.Username}, I sent you my changelog for {Program.version}! {UnicodeEmoji.FromText(":books:")}"); // emoji in message
 					return;
 				}
 			}
-			await ReplyAsync($"Could not find changelogs for ``{changelogFile.Cap(10)}``");
+			await ReplyAsync($"Could not find changelogs for `{changelogFile.Cap(10)}`");
 		}
 
 		/// <summary>
@@ -169,11 +164,11 @@ namespace TheGuide.Modules
 						$" [ID: {application.Owner.Id}]\n" +
 						$"- Library: Discord.Net ({DiscordConfig.Version})" +
 						$" [API: {DiscordConfig.APIVersion}]\n" +
-						$"- Runtime: {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture}\n" +
+						$"- Runtime: {AppContext.TargetFrameworkName} {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture} \n" +
 						$"- Uptime: {Tools.GetUptime()} (dd\\.hh\\:mm\\:ss)\n" +
 						$"- Bot version: {Program.version}";
 
-			if (rem.Cap2000Compare("expand"))
+			if (rem.Trim().ICEquals("expand"))
 			{
 				msg += $"\n\n**Stats**\n" +
 						$"- Heap Size: {Tools.GetHeapSize()} MB\n" +
@@ -620,18 +615,15 @@ namespace TheGuide.Modules
 			var modulesTxt = "";
 
 			var defModule =
-				service.Modules.FirstOrDefault(x =>
+				_service.Modules.FirstOrDefault(x =>
 					string.Equals(x.Name, "default", StringComparison.CurrentCultureIgnoreCase));
 
 			if (defModule != null)
 			{
-				foreach (var command in defModule.Commands)
+				foreach (var command in defModule.Commands.Where(x => !x.Name.ICEquals("no-help")))
 				{
-					if (string.Equals(command.Name, "no-help", StringComparison.CurrentCultureIgnoreCase))
-						continue;
-
 					var result =
-						await command.CheckPreconditionsAsync(Context, map);
+						await command.CheckPreconditionsAsync(Context, _map);
 					if (result.IsSuccess)
 						commandTxt += $"{command.Name}, ";
 
@@ -646,8 +638,8 @@ namespace TheGuide.Modules
 				commandTxt =
 					commandTxt.Truncate(2);
 
-			var modules = service.Modules.Where(x =>
-				!string.Equals(x.Name, "default", StringComparison.CurrentCultureIgnoreCase)).ToArray();
+			var modules = _service.Modules.Where(x =>
+				!x.Name.ICEquals("default")).ToArray();
 
 			if (modules.Any())
 			{
@@ -655,19 +647,20 @@ namespace TheGuide.Modules
 				{
 					var modAlias = module.Aliases.First();
 					if (!string.IsNullOrEmpty(modAlias)
-						&& !string.Equals(module.Name, "no-help", StringComparison.CurrentCultureIgnoreCase)
-						&& module.Commands.Any())
+						&& !module.Name.ICEquals("no-help")
+						&& module.Commands.Any()
+						)
 					{
-						modulesTxt += $"\n``{module.Name}``: ";
-						foreach (var command in module.Commands)
+						string tmptxt = $"\n``{module.Name}``: ";
+						foreach (var command in module.Commands.Where(x => !x.Name.ICEquals("no-help")))
 						{
-							if (string.Equals(command.Name, "no-help", StringComparison.CurrentCultureIgnoreCase))
-								continue;
 							var result =
-								await command.CheckPreconditionsAsync(Context, map);
+								await command.CheckPreconditionsAsync(Context, _map);
 							if (result.IsSuccess)
-								modulesTxt += $"{command.Name}, ";
+								tmptxt += $"{command.Name}, ";
 						}
+						if (!string.IsNullOrEmpty(tmptxt.Split(':')[1].Trim()))
+							modulesTxt += tmptxt;
 					}
 
 					if (modulesTxt.TrimEnd().EndsWith(","))
@@ -687,38 +680,54 @@ namespace TheGuide.Modules
 							$"\n" +
 							$"**Modules**" +
 							$"{modulesTxt}\n\n" +
-							$"Get command specific help: ``{CommandHandler.prefixChar}help [module] <name>``");
+							$"Get command specific help: `{CommandHandler.prefixChar}help <module> <command>`");
 		}
 
 		[Name("no-help")]
 		[Command("help")]
 		[Alias("guide")]
-		public async Task Help([Remainder] string predicate)
+		public async Task Help(string predicate)
 		{
 			predicate = predicate.RemoveWhitespace().ToLower();
-			var sender = Context.Message.Author as SocketGuildUser;
-			var headerTxt = $"**Usable commands for {sender?.Username}**";
+			var sender = Context.Message.Author as SocketGuildUser ?? Context.Message.Author;
+			var headerTxt = $"**Usable commands for {sender.Username}**";
 			var modPrefix = "module:";
-			if (predicate.StartsWith(modPrefix))
+			var startsWithModPrefix = predicate.StartsWith(modPrefix);
+			var isMod = _service.Modules.Any(x => x.Name.ICEquals(predicate));
+			var isCommand = _service.Commands.Any(x => x.Name.ICEquals(predicate));
+			if (startsWithModPrefix || (isMod && !isCommand))
 			{
-				predicate = predicate.Substring(modPrefix.Length);
+				if (startsWithModPrefix)
+					predicate = predicate.Substring(modPrefix.Length);
 				headerTxt += $" **in module {predicate}**";
-				var module = service.Modules.FirstOrDefault(x =>
-					string.Equals(x.Aliases.First(), predicate, StringComparison.CurrentCultureIgnoreCase));
+				var module = _service.Modules.FirstOrDefault(x =>
+					x.Aliases.First().ICEquals(predicate));
 
 				if (module == null)
 				{
-					await ReplyAsync($"Module ``{predicate}`` not found".Cap(2000));
+					await ReplyAsync($"Module `{predicate}` not found".Cap(2000));
 					return;
 				}
 
 				var commands =
 					module.Commands
 						.Where(x =>
-							!string.Equals(x.Name, "no-help", StringComparison.CurrentCultureIgnoreCase));
+							!x.Name.ICEquals("no-help"));
 
-				await ReplyAsync(($"{headerTxt}\n" +
-								commands.Select(x => $"{x.Name}").PrettyPrint()).Cap(2000));
+				var usableCommands = new List<CommandInfo>();
+				var commandInfos = commands as CommandInfo[] ?? commands.ToArray();
+				commandInfos.ToList().ForEach(async x =>
+				{
+					var b = await x.CheckPreconditionsAsync(Context, _map);
+					if (b.IsSuccess)
+						usableCommands.Add(x);
+				});
+
+				await ReplyAsync(usableCommands.Any() ? 
+							($"{headerTxt}\n" +
+							usableCommands.Select(x => $"{x.Name}").PrettyPrint()).Cap(2000)
+							: $"No usable commands found.");
+				
 			}
 			else
 			{
@@ -727,19 +736,19 @@ namespace TheGuide.Modules
 					predicate = predicate.Substring(modPrefix.Length);
 
 				var command =
-					service.Commands
+					_service.Commands
 						.FirstOrDefault(x =>
 							x.Aliases.Contains(predicate)
-							&& !string.Equals(x.Name, "no-help", StringComparison.CurrentCultureIgnoreCase));
+							&& !x.Name.ICEquals("no-help"));
 
 				if (command == null)
 				{
-					await ReplyAsync($"Command ``{predicate}`` not found".Cap(2000));
+					await ReplyAsync($"Command `{predicate}` not found".Cap(2000));
 					return;
 				}
 
 				var checkPreconditionsAsync =
-					command?.CheckPreconditionsAsync(Context, map);
+					command.CheckPreconditionsAsync(Context, _map);
 
 				if (checkPreconditionsAsync != null)
 				{
@@ -751,23 +760,21 @@ namespace TheGuide.Modules
 							.Skip(1)
 							.ToArray();
 
-					var split = command.Remarks.Split('\n');
+					var split = command.Remarks.Split('\n') ?? new string[0];
 
 					var usage =
 						split.Length > 1
-							? $"``{split[0]}``\n**Example**: ``{split[1]}``"
-							: $"``{command.Remarks}``";
+							? $"`{split[0]}`\n**Example**: `{split[1]}`"
+							: $"`{command.Remarks}`";
 
 					await
 						ReplyAsync(
-							$"**Module **: ``{command.Module.Name}``\n" +
-							$"**Command**: ``{command.Aliases.First()}``" +
+							$"**Module **: `{command.Module.Name}`\n" +
+							$"**Command**: `{command.Aliases.First()}`" +
 							$"{(aliases.Any() ? $"\n**Aliases**: {aliases.PrettyPrint()}" : "")}\n" +
-							$"{(command.Summary.Length > 0 ? $"**Summary**: ``{command.Summary}``" : "")}" +
-							$"\n" +
-							$"{(command.Remarks.Length > 0 ? $"**Usage**: {usage}" : "")}" +
-							$"\n" +
-							$"**Usable by {sender?.Username}**: ``{(result.IsSuccess ? "yes" : "no")}``");
+							$"{(command.Summary?.Length > 0 ? $"**Summary**: ``{command.Summary}`\n" : "")}" +
+							$"{(command.Remarks?.Length > 0 ? $"**Usage**: {usage}\n" : "")}" +
+							$"**Usable by {sender?.Username}**: `{(result.IsSuccess ? "yes" : "no")}`");
 				}
 				else
 					await ReplyAsync($"No command found");
@@ -781,8 +788,8 @@ namespace TheGuide.Modules
 		public async Task Help(string module, [Remainder] string predicate)
 		{
 			var sender = Context.Message.Author as SocketGuildUser;
-			var modPrefix = "module:";
-			var cmdPrefix = "command:";
+			const string modPrefix = "module:";
+			const string cmdPrefix = "command:";
 
 			module = module.ToLower();
 			predicate = predicate.RemoveWhitespace().ToLower();
@@ -808,18 +815,18 @@ namespace TheGuide.Modules
 				predicate = split[1];
 
 			var command =
-				service.Modules
+				_service.Modules
 					.FirstOrDefault(x =>
-						string.Equals(x.Name, module, StringComparison.CurrentCultureIgnoreCase))
+						x.Name.ICEquals(module))
 					?.Commands
 					.FirstOrDefault(x =>
 						x.Aliases.Contains($"{module} {predicate}")
-						&& !string.Equals(x.Name, "no-help", StringComparison.CurrentCultureIgnoreCase));
+						&& !x.Name.ICEquals("no-help"));
 
 			if (command != null)
 			{
 				var result =
-					await command.CheckPreconditionsAsync(Context, map);
+					await command.CheckPreconditionsAsync(Context, _map);
 
 				var aliases =
 					command.Aliases
@@ -827,26 +834,24 @@ namespace TheGuide.Modules
 						.ToArray();
 
 				split =
-					command.Remarks.Split('\n');
+					command.Remarks?.Split('\n') ?? new string[0];
 
 				var usage =
 					split.Length > 1
-						? $"``{split[0]}``\n**Example**: ``{split[1]}``"
-						: $"``{command.Remarks}``";
+						? $"`{split[0]}`\n**Example**: `{split[1]}`"
+						: $"`{command.Remarks}`";
 
 				await
 					ReplyAsync(
-						$"**Module **: ``{command.Module.Name}``\n" +
-						$"**Command**: ``{command.Name}``" +
+						$"**Module **: `{command.Module.Name}`\n" +
+						$"**Command**: `{command.Name}`" +
 						$"{(aliases.Any() ? $"\n**Aliases**: {aliases.PrettyPrint()}" : "")}\n" +
-						$"{(command.Summary.Length > 0 ? $"**Summary**: ``{command.Summary}``" : "")}" +
-						$"\n" +
-						$"{(command.Remarks.Length > 0 ? $"**Usage**: {usage}" : "")}" +
-						$"\n" +
-						$"**Usable by {sender?.Username}**: ``{(result.IsSuccess ? "yes" : "no")}``");
+						$"{(command.Summary?.Length > 0 ? $"**Summary**: `{command.Summary}`\n" : "")}" +
+						$"{(command.Remarks?.Length > 0 ? $"**Usage**: {usage}\n" : "")}" +
+						$"**Usable by {sender?.Username}**: `{(result.IsSuccess ? "yes" : "no")}`");
 			}
 			else
-				await ReplyAsync($"Command ``{predicate}`` in module ``{module}`` not found");
+				await ReplyAsync($"Command `{predicate}` in module `{module}` not found");
 		}
 	}
 }

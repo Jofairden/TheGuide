@@ -8,8 +8,8 @@ using TheGuide.Systems;
 
 namespace TheGuide.Preconditions
 {
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-	public class ConfAdmAttr : PreconditionAttribute
+	[AttributeUsage(AttributeTargets.Method)]
+	public class ConfigAdminAttribute : PreconditionAttribute
 	{
 		public override Task<PreconditionResult> CheckPermissions(ICommandContext context, CommandInfo command, IDependencyMap map)
 		{

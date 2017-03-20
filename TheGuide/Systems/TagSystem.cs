@@ -26,27 +26,16 @@ namespace TheGuide.Systems
 				Claimers = source.Claimers;
 				ID = default(long);
 			}
-			else
-			{
-				Name = string.Empty;
-				Output = string.Empty;
-				TimeCreated = DateTime.MinValue;
-				LastEdited = DateTime.MinValue;
-				Creator = string.Empty;
-				LastEditor = string.Empty;
-				Claimers = new List<string>();
-				ID = default(long);
-			}
 		}
 
-		public string Name;
-		public string Output;
-		public DateTime TimeCreated;
-		public DateTime LastEdited;
-		public string Creator;
-		public string LastEditor;
-		public List<string> Claimers;
-		public long ID;
+		public string Name { get; set; }
+		public string Output { get; set; }
+		public DateTime TimeCreated { get; set; }
+		public DateTime LastEdited { get; set; }
+		public string Creator { get; set; }
+		public string LastEditor { get; set; }
+		public List<string> Claimers { get; set; } = new List<string>();
+		public long ID { get; set; }
 
 		public override void Validate(long? id)
 		{
@@ -67,7 +56,7 @@ namespace TheGuide.Systems
 
 		// ./assembly/dist/tags/
 		private static string rootDir =>
-			Path.Combine(Program.AssemblyDirectory, "dist", "tags");
+			Path.Combine(AppContext.BaseDirectory, "dist", "tags");
 
 		// Gets all json filenames from x guild
 		public static IEnumerable<TagJson> tags(ulong guid) =>
@@ -93,14 +82,15 @@ namespace TheGuide.Systems
 		{
 			await Task.Run(() =>
 			{
-				Directory.CreateDirectory(Directory.GetParent(rootDir).FullName);
 				Directory.CreateDirectory(rootDir);
 
-				foreach (var guild in (client as DiscordSocketClient).Guilds)
-				{
-					var path = Path.Combine(rootDir, $"{guild.Id}");
-					Directory.CreateDirectory(path);
-				}
+				var discordSocketClient = client as DiscordSocketClient;
+				if (discordSocketClient != null)
+					foreach (var guild in discordSocketClient.Guilds)
+					{
+						var path = Path.Combine(rootDir, $"{guild.Id}");
+						Directory.CreateDirectory(path);
+					}
 			});
 		}
 
@@ -109,8 +99,7 @@ namespace TheGuide.Systems
 		/// </summary>
 		public static async Task<GuideResult> CreateTag(ulong guid, string name, TagJson input, bool check = true)
 		{
-			await Task.Yield();
-			if (check && tags(guid).Any(t => string.Equals(t.Name, name, StringComparison.CurrentCultureIgnoreCase)))
+			if (check && tags(guid).Any(t => t.Name.ICEquals(name)))
 				return new GuideResult($"Tag ``{name}`` already exists!");
 			var result = await WriteTag(guid, input);
 			return result;

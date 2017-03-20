@@ -40,13 +40,14 @@ namespace TheGuide
 	// press Enter
 	public class Program
 	{
-		public static void Main(string[] args) => new Program().Start().GetAwaiter().GetResult();
+		public static void Main(string[] args) => 
+			new Program().Start().GetAwaiter().GetResult();
 
 		// Variables
 		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.3";
+		public const string version = "r-3.4";
 
 		// Cache
 		public static stringShortDict itemConsts;
@@ -60,14 +61,12 @@ namespace TheGuide
 		private string oath2Url = "https://discordapp.com/api/oauth2/authorize";
 		private DiscordSocketClient client;
 		private CommandHandler handler;
-		private DateTime time { get; set; } = DateTime.Now;
-		public static string AssemblyDirectory => Path.GetDirectoryName(Uri.UnescapeDataString(new UriBuilder(Assembly.GetEntryAssembly().CodeBase).Path));
+		private DateTime time { get; } = DateTime.Now;
 
 		// Start of App
 		public async Task Start()
 		{
 			// Setup, cache
-			time = DateTime.Now;
 			itemConsts = new stringShortDict(typeof(ItemID).GetAllPublicConstants<short>(), StringComparer.CurrentCultureIgnoreCase);
 			dustConsts = new stringShortDict(typeof(DustID).GetAllPublicConstants<short>(), StringComparer.CurrentCultureIgnoreCase);
 			chainConsts = new stringShortDict(typeof(ChainID).GetAllPublicConstants<short>(), StringComparer.CurrentCultureIgnoreCase);
@@ -75,81 +74,41 @@ namespace TheGuide
 			buffConsts = new stringIntDict(typeof(BuffID).GetAllPublicConstants<int>(), StringComparer.CurrentCultureIgnoreCase);
 
 			// Begin app
-			Console.Title = $"The Guide {version} - {AssemblyDirectory}";
+			Console.Title = $"The Guide {version} - {AppContext.BaseDirectory}";
 			await Console.Out.WriteLineAsync($"{oath2Url}?client_id={clientid}&scope=bot");
 			await Console.Out.WriteLineAsync($"Start date: {time}");
 
 			// Client
-			client = new DiscordSocketClient(new DiscordSocketConfig()
+			client = new DiscordSocketClient(new DiscordSocketConfig
 			{
 				LogLevel = LogSeverity.Verbose,
-				DefaultRetryMode = RetryMode.AlwaysFail,
-				MessageCacheSize = 10,
-				ConnectionTimeout = 10000
+				AlwaysDownloadUsers = true,
+				MessageCacheSize = 50,
 			});
 
 			client.Log += Client_Log;
+			client.LatencyUpdated += Client_LatencyUpdated;
+			client.GuildMemberUpdated += Client_GuildMemberUpdated;
+			client.UserJoined += Client_UserJoined;
+			client.UserLeft += Client_UserLeft;
+			client.ChannelDestroyed += Client_ChannelDestroyed;
 
 			// Connection
 			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.BotToken);
+			await client.LoginAsync(TokenType.Bot, Token.TestToken);
 			await client.StartAsync();
-			await Task.Delay(5000); // Give some time to connect
+			//await Task.Delay(5000); // Give some time to connect
 
 			// After connection
-			client.LatencyUpdated += Client_LatencyUpdated;
-			client.GuildMemberUpdated += async (i, j) =>
-			{
-				await SubSystem.MaintainUser(j.Guild, j);
-			};
-			client.UserJoined += async (u) =>
-			{
-				await SubSystem.MaintainUser(u.Guild, u);
-				var ch = await u.CreateDMChannelAsync();
-				await ch.SendMessageAsync(
-					$"Hey there {u.Username}!\n" +
-					$"I see you just joined our server, how lovely!\n" +
-					$"Send ``{CommandHandler.prefixChar}help`` to me and I will show you how I work!\n" +
-					$"\n" +
-					$"Our server uses a channel subscription system!\n" +
-					$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
-					$"\n" +
-					$"Use ``{CommandHandler.prefixChar}changelog`` to see my most recent changes!" +
-					$"\n" +
-					$"\n" +
-					$"Have a nice stay! :wave:");
-			};
-			client.UserLeft += async (u) =>
-			{
-				var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
-				if (!result.IsSuccess)
-					await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
-			};
-			client.ChannelDestroyed += async (c) =>
-			{
-				var ch = c as SocketGuildChannel;
-				if (ch != null)
-				{
-					await SubSystem.MaintainServer(ch.Guild);
-				}
-			};
+
 
 			// Map
 			var map = new DependencyMap();
-			map.Add(client);
 			map.Add(cooldowns);
-
-			//await JsonSystem.Setup(client);
-			await Client_LatencyUpdated(client.Latency, client.Latency);
-
 
 			// Handler
 			handler = new CommandHandler();
-			await handler.Install(map);
-
-			//await client.SetGameAsync($"{CommandHandler.prefixChar}help");
-			// Create tag directory for new server
-			//client.JoinedGuild += async (g) => await JsonSystem.CreateTagDir(g.Id);;
+			await handler.Install(client, map);
 
 
 			//Maintain systems
@@ -181,6 +140,45 @@ namespace TheGuide
 			await Task.Delay(-1);
 		}
 
+		private async Task Client_ChannelDestroyed(SocketChannel c)
+		{
+			var ch = c as SocketGuildChannel;
+			if (ch != null)
+			{
+				await SubSystem.MaintainServer(ch.Guild);
+			}
+		}
+
+		private async Task Client_UserLeft(SocketGuildUser u)
+		{
+			var result = await SubSystem.DeleteUserSub(u.Guild.Id, u.Id);
+			if (!result.IsSuccess)
+				await Client_Log(new LogMessage(LogSeverity.Error, "Client:SubSystem", result.ErrorReason));
+		}
+
+		private async Task Client_UserJoined(SocketGuildUser u)
+		{
+			await SubSystem.MaintainUser(u.Guild, u);
+			var ch = await u.CreateDMChannelAsync();
+			await ch.SendMessageAsync(
+				$"Hey there {u.Username}!\n" +
+				$"I see you just joined our server, how lovely!\n" +
+				$"Send ``{CommandHandler.prefixChar}help`` in the server and I will show you how I work!\n" +
+				$"\n" +
+				$"Our server uses a channel subscription system!\n" +
+				$"Type ``{CommandHandler.prefixChar}sub list`` to see existing subscriptions or ``{CommandHandler.prefixChar}help module:sub`` for more info.\n" +
+				$"\n" +
+				$"Use ``{CommandHandler.prefixChar}changelog`` to see my most recent changes!" +
+				$"\n" +
+				$"\n" +
+				$"Have a nice stay! :wave:");
+		}
+
+		private async Task Client_GuildMemberUpdated(SocketGuildUser i, SocketGuildUser j)
+		{
+			await SubSystem.MaintainUser(j.Guild, j);
+		}
+
 		private const int offset = -10;
 
 		private async Task Client_Log(LogMessage e) =>
@@ -190,14 +188,23 @@ namespace TheGuide
 		{
 			if (client == null) return;
 
+			if (!client.CurrentUser.Game.HasValue)
+			{
+				await Task.Run(async () =>
+				{
+					await client.SetGameAsync("READY");
+					await Task.Delay(7000);
+					await client.SetGameAsync("Terraria");
+				});
+
+				return;
+			}
+
 			await client.SetStatusAsync(
 				//maintenanceMode ? UserStatus.DoNotDisturb :
-				// ConnectionState was bugged, should be fixed in newer builds
 				(client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
 				: (client.ConnectionState == ConnectionState.Connecting || j > 250) ? UserStatus.Idle
 				: UserStatus.Online);
-
-			await client.SetGameAsync(/*maintenanceMode ? "maintenance" : */"Terraria");
 		}
 	}
 }
