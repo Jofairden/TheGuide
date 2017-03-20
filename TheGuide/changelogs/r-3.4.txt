@@ -1,0 +1,24 @@
+﻿```Changelogs for r-3.4```
+`Bugfixes`
+Fixed NREs when trying to send commands via a DM (now sends appropiate feedback)
+Fixed bot throwing 'UnknownCommand: Unknown command.' feedback (unwanted feedback)
+Fixed help command showing names of modules when no commands of it are actually usable
+Fixed help command showing unusable commands when looking for module commands
+Fixed help command NREs and styling issues (came along with lib upgrade)
+Fixed ModSystem not writing data to date.txt, causing too frequent modlist downloads
+
+`Commands`
+Added target framework name to 'Runtime' header in the ?info command
+Improved some command feedback (along with formatting) - minor
+Help command now finds modules automatically (if no command with the same name is found), without having to prepend 'module:' (still supported though)
+Changelog DM feedback now also sends a list of other available changelogs
+
+`Other`
+Update to beta build 00642 of lib
+Now using and showcasing Addons.EmojiTools (unicode conversion)
+General small updates, such as a few nullchecks
+Replaced 'Program.AssemblyDirectory' references with 'AppContent.BaseDirectory' (.net 4.6)
+Removed some formatting mistakes from changelog files
+Added ICEquals helper method, some calls may not be replaced yet, will over time
+Improved some Systems code, lots of other code improvements
+Made modlist download call send v0.9.2 as modloaderversion, should always work
