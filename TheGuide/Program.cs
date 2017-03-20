@@ -47,7 +47,7 @@ namespace TheGuide
 		//public const bool maintenanceMode = false;
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.4";
+		public const string version = "r-3.5";
 
 		// Cache
 		public static stringShortDict itemConsts;

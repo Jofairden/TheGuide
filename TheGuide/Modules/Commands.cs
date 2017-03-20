@@ -324,6 +324,7 @@ namespace TheGuide.Modules
 			short parsed16Int;
 			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, short> kvp;
+
 			if (short.TryParse(usename, out parsed16Int) 
 				&& Program.itemConsts.ContainsValue(parsed16Int))
 			{

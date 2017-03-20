@@ -2,7 +2,7 @@
   "title": "The Guide - Discord Bot",
   "copyright": "Jofairden - Daniël Zondervan",
   "description": "A discord bot by Jofairden, for Terraria.",
-  "version": "3.4.0-*",
+  "version": "3.5.0-*",
   "buildOptions": {
     "emitEntryPoint": true
   },
