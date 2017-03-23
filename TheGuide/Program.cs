@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -192,8 +193,21 @@ namespace TheGuide
 
 		private const int offset = -10;
 
-		private async Task Client_Log(LogMessage e) =>
-			await Console.Out.WriteLineAsync($"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~");
+	    private async Task Client_Log(LogMessage e)
+	    {
+	        var time = DateTime.Now.ToString("MM-dd-yyy", CultureInfo.InvariantCulture);
+	        var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
+	        var filepath = Path.Combine(path, time + ".txt");
+
+            Directory.CreateDirectory(path);
+	        if (!File.Exists(filepath))
+	            File.Create(filepath);
+
+	        var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
+	        File.AppendAllText(filepath, msg + "\r\n");
+            await Console.Out.WriteLineAsync(msg);
+        }
+			
 
 		private async Task Client_LatencyUpdated(int i, int j)
 		{

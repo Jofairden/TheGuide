@@ -541,7 +541,7 @@ namespace TheGuide.Modules
 						.Split(new string[] { "<br>" }, StringSplitOptions.None)
 						.Where((x, i) => i < 10)
 						.ToDictionary(
-							x => new string(x.Where(char.IsLetter).ToArray()), y => new string(y.Where(char.IsDigit).ToArray()));
+							x => new string(x.Where(z => !char.IsDigit(z)).ToArray()).Trim(), y => new string(y.Where(char.IsDigit).ToArray()));
 
 				await ReplyAsync($"``Showing top 10 popular mods (mod: downloads)``\n" +
 								 string.Join("\n", entries.Select(x => $"**{x.Key}**: {int.Parse(x.Value):n0}")));
