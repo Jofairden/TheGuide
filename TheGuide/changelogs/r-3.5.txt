@@ -1,8 +1,9 @@
 ﻿```Changelogs for r-3.5```
 `Bugfixes`
-
+Fixed feedback styling for ?popular
 
 `Commands`
 
 
 `Other`
+Now logging console output to file
