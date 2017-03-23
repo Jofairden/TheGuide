@@ -13,6 +13,7 @@ using Discord;
 using Discord.Addons.EmojiTools;
 using Discord.Commands;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TheGuide.Preconditions;
 using TheGuide.Systems;
@@ -503,22 +504,16 @@ namespace TheGuide.Modules
 							: string.Equals(name, "updateTimeStamp", StringComparison.CurrentCultureIgnoreCase)
 							? DateTime.Parse($"{property.Value}").ToString("dddd, MMMMM d, yyyy h:mm:ss tt", culture)
 							: $"{property.Value}";
-					properties.Add($"**{name.FirstCharToUpper()}**: {value}");
+					properties.Add($"{Format.Bold(name.FirstCharToUpper())}: {value}");
 				}
-				properties.Add($"**Widget:** <{ModSystem.widgetUrl}{mod}.png>");
+				properties.Add($"**{Format.Bold("Widget")}: <{ModSystem.widgetUrl}{mod}.png>");
 				using (var client = new System.Net.Http.HttpClient())
 				{
-					var values = new Dictionary<string, string>
-					{
-						{"modname", mod}
-					};
-					var content = new System.Net.Http.FormUrlEncodedContent(values);
-					var response = await client.PostAsync(ModSystem.homepageUrl, content);
+					var response = await client.GetAsync(ModSystem.queryHomepageUrl + mod);
 					var postResponse = await response.Content.ReadAsStringAsync();
-					if (!string.IsNullOrEmpty(postResponse))
+					if (!string.IsNullOrEmpty(postResponse) && !postResponse.StartsWith("Failed:"))
 					{
-						var json = JObject.Parse(postResponse);
-						properties.Add($"**Homepage:** <{json.Property("homepage").Value}>");
+						properties.Add($"{Format.Bold("Homepage")}: <{postResponse}>");
 					}
 				}
 
@@ -536,15 +531,14 @@ namespace TheGuide.Modules
 			{
 				var response = await client.GetAsync(ModSystem.popularUrl);
 				var postResponse = await response.Content.ReadAsStringAsync();
-				var entries =
-					postResponse
-						.Split(new string[] { "<br>" }, StringSplitOptions.None)
-						.Where((x, i) => i < 10)
-						.ToDictionary(
-							x => new string(x.Where(z => !char.IsDigit(z)).ToArray()).Trim(), y => new string(y.Where(char.IsDigit).ToArray()));
+			    var entries = JArray.Parse(postResponse);
+			    var data = entries.Children<JObject>()
+			        .ToDictionary(
+			            x => x.Property("name").Value.ToObject<string>(),
+			            y => y.Property("dls").Value.ToObject<int>());
 
 				await ReplyAsync($"``Showing top 10 popular mods (mod: downloads)``\n" +
-								 string.Join("\n", entries.Select(x => $"**{x.Key}**: {int.Parse(x.Value):n0}")));
+								 string.Join("\n", data.Select(x => $"**{x.Key}**: {x.Value:n0}")));
 			}
 		}
 

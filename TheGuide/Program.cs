@@ -46,6 +46,7 @@ namespace TheGuide
 
 		// Variables
 		//public const bool maintenanceMode = false;
+	    internal object _locker = new object();
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
 		public const string version = "r-3.5";
@@ -198,13 +199,15 @@ namespace TheGuide
 	        var time = DateTime.Now.ToString("MM-dd-yyy", CultureInfo.InvariantCulture);
 	        var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
 	        var filepath = Path.Combine(path, time + ".txt");
-
-            Directory.CreateDirectory(path);
-	        if (!File.Exists(filepath))
-	            File.Create(filepath);
-
-	        var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
-	        File.AppendAllText(filepath, msg + "\r\n");
+            var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
+           
+	        lock (_locker)
+	        {
+                Directory.CreateDirectory(path);
+                if (!File.Exists(filepath))
+                    File.Create(filepath);
+                File.AppendAllText(filepath, msg + "\r\n");
+            }       
             await Console.Out.WriteLineAsync(msg);
         }
 			
