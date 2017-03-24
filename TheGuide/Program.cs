@@ -59,6 +59,9 @@ namespace TheGuide
 		public static stringIntDict buffConsts;
 
 		// Variables 
+		internal CancellationTokenSource SystemTC;
+		internal CancellationToken SystemCT;
+
 		private readonly Dictionary<ulong, DateTime> cooldowns = new Dictionary<ulong, DateTime>();
 		private string oath2Url = "https://discordapp.com/api/oauth2/authorize";
 		private DiscordSocketClient client;
@@ -114,31 +117,28 @@ namespace TheGuide
 			await handler.Install(client, map);
 
 
-			//Maintain systems
-			var timer = new Timer(async s =>
+			SystemTC = new CancellationTokenSource();
+			SystemCT = SystemTC.Token;
+
+			await Task.Run(async () =>
 			{
-				int tries = 5;
-				bool success = false;
-				while (!success && tries > 0)
+				while (true)
 				{
 					try
 					{
+						if (SystemCT.IsCancellationRequested) break;
 						await ConfigSystem.Maintain(client);
 						await TagSystem.Maintain(client);
 						await SubSystem.Maintain(client);
 						await ModSystem.Maintain(client);
-						success = true;
+						await Task.Delay(900000, SystemCT);
 					}
-					catch
+					catch (Exception e)
 					{
-						if (--tries <= 0)
-							return; // do not break, may crash bot at runtime
+						await Client_Log(new LogMessage(LogSeverity.Critical, "SystemMain", "", e));
 					}
 				}
-			},
-			null,
-			TimeSpan.FromSeconds(0),
-			TimeSpan.FromMinutes(15));
+			}, SystemCT);
 
 			await Task.Delay(-1);
 		}
