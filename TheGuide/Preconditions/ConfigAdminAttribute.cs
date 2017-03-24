@@ -23,10 +23,10 @@ namespace TheGuide.Preconditions
 
 		private bool CheckResult(ICommandContext context, CommandInfo command, IDependencyMap map)
 		{
-			var configRoles = 
+			var configRoles =
 				ConfigSystem.config(context.Guild.Id)?.admRoles.ToArray();
 
-			var userRoles = 
+			var userRoles =
 				(context.User as IGuildUser)?.RoleIds.ToArray();
 
 			return configRoles.Intersect(userRoles).Any();

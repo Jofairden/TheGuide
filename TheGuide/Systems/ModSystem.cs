@@ -12,7 +12,7 @@ namespace TheGuide.Systems
 	{
 		internal const string queryDownloadUrl = "http://javid.ddns.net/tModLoader/tools/querymoddownloadurl.php?modname=";
 		internal const string queryHomepageUrl = "http://javid.ddns.net/tModLoader/tools/querymodhomepage.php?modname=";
-        internal const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
+		internal const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
 		internal const string xmlUrl = "http://javid.ddns.net/tModLoader/listmods.php";
 		internal const string homepageUrl = "http://javid.ddns.net/tModLoader/moddescription.php";
 		internal const string popularUrl = "http://javid.ddns.net/tModLoader/tools/populartop10.php";
@@ -51,7 +51,7 @@ namespace TheGuide.Systems
 			}
 
 			// Needs to maintain data
-			if (dateDiff == TimeSpan.MinValue 
+			if (dateDiff == TimeSpan.MinValue
 				|| dateDiff.TotalDays > 1d)
 			{
 				var data = await DownloadData();
@@ -86,7 +86,7 @@ namespace TheGuide.Systems
 				return postResponse;
 			}
 		}
-		
+
 		// Very nasty, needs something better
 		private static async Task<string> GetTMLVersion()
 		{

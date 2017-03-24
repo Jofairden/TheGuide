@@ -242,7 +242,7 @@ namespace TheGuide.Modules
 							g =>
 								g.Users.Where(
 									u =>
-										u.Username.ICEquals(username)||
+										u.Username.ICEquals(username) ||
 										u.Nickname.ICEquals(username)))
 						.ToList();
 
@@ -300,7 +300,7 @@ namespace TheGuide.Modules
 				}
 				await msg.DeleteAsync();
 			}
-			
+
 		}
 
 		/// <summary>
@@ -326,7 +326,7 @@ namespace TheGuide.Modules
 			string usename = name.RemoveWhitespace();
 			KeyValuePair<string, short> kvp;
 
-			if (short.TryParse(usename, out parsed16Int) 
+			if (short.TryParse(usename, out parsed16Int)
 				&& Program.itemConsts.ContainsValue(parsed16Int))
 			{
 				kvp = Program.itemConsts.FirstOrDefault(x => x.Value == parsed16Int);
@@ -531,11 +531,11 @@ namespace TheGuide.Modules
 			{
 				var response = await client.GetAsync(ModSystem.popularUrl);
 				var postResponse = await response.Content.ReadAsStringAsync();
-			    var entries = JArray.Parse(postResponse);
-			    var data = entries.Children<JObject>()
-			        .ToDictionary(
-			            x => x.Property("name").Value.ToObject<string>(),
-			            y => y.Property("dls").Value.ToObject<int>());
+				var entries = JArray.Parse(postResponse);
+				var data = entries.Children<JObject>()
+					.ToDictionary(
+						x => x.Property("name").Value.ToObject<string>(),
+						y => y.Property("dls").Value.ToObject<int>());
 
 				await ReplyAsync($"``Showing top 10 popular mods (mod: downloads)``\n" +
 								 string.Join("\n", data.Select(x => $"**{x.Key}**: {x.Value:n0}")));

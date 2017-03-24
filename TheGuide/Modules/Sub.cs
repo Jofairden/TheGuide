@@ -25,7 +25,7 @@ namespace TheGuide.Modules
 
 		[Name("no-help")]
 		[Command("help")]
-		public async Task Help([Remainder] string rem =null) =>
+		public async Task Help([Remainder] string rem = null) =>
 			await _service.ExecuteAsync(Context, $"help module:sub {rem ?? ""}", _map, MultiMatchHandling.Best);
 
 		[Name("no-help")]
@@ -56,7 +56,7 @@ namespace TheGuide.Modules
 				await _service.ExecuteAsync(Context, "help unsub me", _map, MultiMatchHandling.Best);
 		}
 
-		[Name("no-help"),Priority(0)]
+		[Name("no-help"), Priority(0)]
 		[Command("me")]
 		public async Task Me([Remainder] ITextChannel channel) =>
 			await TryUnsub(Context.User, channel);
@@ -88,7 +88,7 @@ namespace TheGuide.Modules
 		public async Task All([Remainder] string rem = null) =>
 			await TryUnSubAll(Context.User);
 
-		[Name("no-help"),Priority(1)]
+		[Name("no-help"), Priority(1)]
 		[Command("all")]
 		[SubAdmin]
 		public async Task All([Remainder]IUser user) =>
@@ -144,7 +144,7 @@ namespace TheGuide.Modules
 
 			var role = (user as SocketGuildUser)?.Roles.FirstOrDefault(r => r.Id == roleID);
 			if (role != null)
-				await ((SocketGuildUser) user).RemoveRoleAsync(role);
+				await ((SocketGuildUser)user).RemoveRoleAsync(role);
 
 			userJson.SubRoles.Remove(roleID);
 			var result = await userJson.Write(guild.Id, true);
@@ -231,7 +231,7 @@ namespace TheGuide.Modules
 				return;
 			}
 
-			var serverJson = 
+			var serverJson =
 				SubSystem.LoadSubServerJson(Context.Guild.Id);
 
 			var cond =
@@ -239,7 +239,7 @@ namespace TheGuide.Modules
 			var msg = cond
 				? $"Role ``{role.Name}`` is no longer a 'SubSystem' admin"
 				: $"Role ``{role.Name}`` is now a 'SubSystem' admin";
-			if(cond)
+			if (cond)
 				serverJson.AdminRoles.Remove(role.Id);
 			else
 				serverJson.AdminRoles.Add(role.Id);
@@ -495,7 +495,7 @@ namespace TheGuide.Modules
 				if (!subs.Any())
 					msg += $"No server subscriptions available";
 				else
-					msg += 
+					msg +=
 						string.Join("\n", subs.Select(x => $"**{guild?.GetChannel(x.Key).Name ?? "null"}**: {guild?.GetRole(x.Value).Name ?? "null"}"))
 						.Cap(2000 - msg.Length);
 			}
@@ -543,9 +543,9 @@ namespace TheGuide.Modules
 
 			if (role == null)
 			{
-				role = 
+				role =
 					await Context.Guild.CreateRoleAsync(roleName);
-				var rolePerms = 
+				var rolePerms =
 					new OverwritePermissions(readMessages: PermValue.Allow, readMessageHistory: PermValue.Allow);
 				await channel.AddPermissionOverwriteAsync(role, rolePerms);
 				await ReplyAsync($"Since no role named ``{roleName}`` was found, I created one with read permission for channel {channel.Mention}");
@@ -630,7 +630,7 @@ namespace TheGuide.Modules
 		private async Task TryDelete(IRole role)
 		{
 			var guild = Context.Guild as SocketGuild;
-			var serverJson = 
+			var serverJson =
 				SubSystem.LoadSubServerJson(guild.Id);
 
 			var data =
@@ -650,7 +650,7 @@ namespace TheGuide.Modules
 			foreach (var user in guild.Users)
 			{
 				if (SubSystem.jsonfiles(guild.Id)
-					.Any(x => 
+					.Any(x =>
 					x == $"{user.Id}")) // fixes errors not finding file, only for found files
 				{
 					var userJson =
@@ -699,7 +699,7 @@ namespace TheGuide.Modules
 			});
 
 			var result = await serverJson.Write(Context.Guild.Id);
-			await ReplyAsync(result.IsSuccess 
+			await ReplyAsync(result.IsSuccess
 				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated with role ``{role.Name}``"
 				: result.ErrorReason);
 		}
@@ -709,7 +709,7 @@ namespace TheGuide.Modules
 		/// </summary>
 		private async Task TryCreate(ITextChannel channel, IRole role)
 		{
-			var serverJson = 
+			var serverJson =
 				SubSystem.LoadSubServerJson(Context.Guild.Id);
 
 			if (serverJson.Data.Any(x => x.Value == role.Id))
@@ -732,7 +732,7 @@ namespace TheGuide.Modules
 			var result =
 				await serverJson.Write(Context.Guild.Id);
 
-			await ReplyAsync(result.IsSuccess 
+			await ReplyAsync(result.IsSuccess
 				? $"Created subscription for {channel.Mention} using role ``{role.Name}``"
 				: result.ErrorReason);
 		}
@@ -742,9 +742,9 @@ namespace TheGuide.Modules
 		/// </summary>
 		private async Task TrySubAll(IUser user)
 		{
-			var guild = 
+			var guild =
 				Context.Guild as SocketGuild;
-			var serverJson = 
+			var serverJson =
 				SubSystem.LoadSubServerJson(guild.Id);
 			var userJson =
 				SubSystem.LoadSubUserJson(guild.Id, user.Id);
@@ -754,7 +754,7 @@ namespace TheGuide.Modules
 						!userJson.SubRoles
 							.Contains(x.Value))
 					.ToArray();
-			var ufull = 
+			var ufull =
 				$"``{user.GenFullName()}``";
 
 
@@ -797,15 +797,15 @@ namespace TheGuide.Modules
 		/// </summary>
 		private async Task TrySub(IUser user, ITextChannel channel)
 		{
-			var guild = 
+			var guild =
 				Context.Guild as SocketGuild;
-			var userJson = 
+			var userJson =
 				SubSystem.LoadSubUserJson(guild.Id, user.Id);
-			var serverJson = 
+			var serverJson =
 				SubSystem.LoadSubServerJson(guild.Id);
-			var ufull = 
+			var ufull =
 				$"``{user.GenFullName()}``";
-			
+
 			// No subscription found
 			if (!serverJson.Data.ContainsKey(channel.Id))
 			{
@@ -829,13 +829,13 @@ namespace TheGuide.Modules
 			}
 
 			// Sub to channel
-			var roles = new List<IRole> {role};
+			var roles = new List<IRole> { role };
 			await (user as IGuildUser).AddRolesAsync(roles);
 			userJson.SubRoles = userJson.SubRoles.Union(roles.Select(x => x.Id)).ToList();
 
 			var result = await userJson.Write(guild.Id, true);
-			await ReplyAsync(result.IsSuccess 
-				? $"Subscribed ``{user.GenFullName()}`` to {channel.Mention}" 
+			await ReplyAsync(result.IsSuccess
+				? $"Subscribed ``{user.GenFullName()}`` to {channel.Mention}"
 				: result.ErrorReason);
 		}
 	}

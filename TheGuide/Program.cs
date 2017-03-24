@@ -41,12 +41,12 @@ namespace TheGuide
 	// press Enter
 	public class Program
 	{
-		public static void Main(string[] args) => 
+		public static void Main(string[] args) =>
 			new Program().Start().GetAwaiter().GetResult();
 
 		// Variables
 		//public const bool maintenanceMode = false;
-	    internal object _locker = new object();
+		internal object _locker = new object();
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
 		public const string version = "r-3.5";
@@ -194,23 +194,23 @@ namespace TheGuide
 
 		private const int offset = -10;
 
-	    private async Task Client_Log(LogMessage e)
-	    {
-	        var time = DateTime.Now.ToString("MM-dd-yyy", CultureInfo.InvariantCulture);
-	        var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
-	        var filepath = Path.Combine(path, time + ".txt");
-            var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
-           
-	        lock (_locker)
-	        {
-                Directory.CreateDirectory(path);
-                if (!File.Exists(filepath))
-                    File.Create(filepath);
-                File.AppendAllText(filepath, msg + "\r\n");
-            }       
-            await Console.Out.WriteLineAsync(msg);
-        }
-			
+		private async Task Client_Log(LogMessage e)
+		{
+			var time = DateTime.Now.ToString("MM-dd-yyy", CultureInfo.InvariantCulture);
+			var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
+			var filepath = Path.Combine(path, time + ".txt");
+			var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
+
+			lock (_locker)
+			{
+				Directory.CreateDirectory(path);
+				if (!File.Exists(filepath))
+					File.Create(filepath);
+				File.AppendAllText(filepath, msg + "\r\n");
+			}
+			await Console.Out.WriteLineAsync(msg);
+		}
+
 
 		private async Task Client_LatencyUpdated(int i, int j)
 		{

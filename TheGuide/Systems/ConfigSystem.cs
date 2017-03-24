@@ -33,12 +33,12 @@ namespace TheGuide.Systems
 	}
 
 	public static class ConfigSystem
-    {
+	{
 		private static string rootDir =>
 			Path.Combine(AppContext.BaseDirectory, "dist", "configs");
 
-	    public static ConfigJson config(ulong guid) =>
-		    config(Path.Combine(rootDir, $"{guid}.json"));
+		public static ConfigJson config(ulong guid) =>
+			config(Path.Combine(rootDir, $"{guid}.json"));
 
 		public static ConfigJson config(string path) =>
 			JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(path));
@@ -66,7 +66,7 @@ namespace TheGuide.Systems
 				{
 					var path = Path.Combine(rootDir, $"{guild.Id}.json");
 					if (File.Exists(path)) continue;
-					var json = new ConfigJson {guid = guild.Id};
+					var json = new ConfigJson { guid = guild.Id };
 					File.WriteAllText(path, json.SerializeToJson());
 				}
 			});

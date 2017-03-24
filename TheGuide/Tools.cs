@@ -77,7 +77,7 @@ namespace TheGuide
 		public static ulong GiB(this ulong value) => value.MiB() * 1024;
 		public static ulong GB(this ulong value) => value.MB() * 1000;
 
-		public static string Unmention(this string str) => 
+		public static string Unmention(this string str) =>
 			str.Replace("@​everyone", "@every\x200Bone").Replace("@here", "@he\x200Bre");
 
 		public static string GenFullName(string username, string discriminator) =>

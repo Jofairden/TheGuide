@@ -96,7 +96,7 @@ namespace TheGuide.Systems
 			Directory.CreateDirectory(path);
 			if (!File.Exists(Path.Combine(path, "server.json")))
 			{
-				await CreateServerSub(guild.Id, new SubServerJson {GUID = guild.Id});
+				await CreateServerSub(guild.Id, new SubServerJson { GUID = guild.Id });
 				return;
 			}
 
@@ -145,7 +145,7 @@ namespace TheGuide.Systems
 						SubRoles = new List<ulong>()
 					};
 				await CreateUserSub(guild.Id, user.Id, json);
-			}		
+			}
 			else
 			{
 				var json = LoadSubUserJson(guild.Id, user.Id);
