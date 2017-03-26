@@ -1,10 +1,11 @@
 ﻿```Changelogs for r-3.5```
 `Bugfixes`
 Fixed feedback styling for ?popular
-Fixed system maintaining by rewriting the calls
+Rewritten file IO, code should no longer fail
 
 `Commands`
 Improved homepage feedback handling for ?mod, no longer shows when empty
 
 `Other`
-Now logging console output to file
+Now logging console output
+Fixed some misc. feedback

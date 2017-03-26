@@ -61,11 +61,11 @@ namespace TheGuide.Systems
 		// Gets all json filenames from x guild
 		public static IEnumerable<TagJson> tags(ulong guid) =>
 			Directory.GetFiles(Path.Combine(rootDir, $"{guid}"), "*.json")
-				.Select(x => JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(x)));
+				.Select(x => JsonConvert.DeserializeObject<TagJson>(Tools.FileReadToEnd(Program._locker, x)));
 
 		public static Dictionary<string, TagJson> jsonfiles(ulong guid) =>
-			Directory.GetFiles(Path.Combine(rootDir, $"{guid}"), "*.json")
-				.ToDictionary(x => x, x => JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(x)));
+			Directory.GetFiles(Path.Combine(rootDir, guid.ToString()), "*.json")
+				.ToDictionary(x => x, x => JsonConvert.DeserializeObject<TagJson>(Tools.FileReadToEnd(Program._locker, x)));
 
 		public static TagJson getTag(ulong guid, string name) =>
 			tags(guid)
@@ -111,7 +111,10 @@ namespace TheGuide.Systems
 			await Task.Yield();
 			long useId = input.ID != default(long) ? input.ID : idGen.GenerateId();
 			input.ID = useId;
-			File.WriteAllText(Path.Combine(rootDir, $"{guid}", $"{useId}.json"), JsonConvert.SerializeObject(input));
+			Tools.FileWrite(
+				Program._locker, 
+				Path.Combine(rootDir, guid.ToString(), $"{useId}.json"),
+				JsonConvert.SerializeObject(input));
 			var result = new GuideResult();
 			result.SetIsSuccess(tags(guid).Any(t => t.ID == useId));
 			return result;
@@ -126,10 +129,10 @@ namespace TheGuide.Systems
 		public static async Task<GuideResult> DeleteTag(ulong guid, string name)
 		{
 			await Task.Yield();
-			var tag = tags(guid).FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.CurrentCultureIgnoreCase));
+			var tag = tags(guid).FirstOrDefault(t => t.Name.ICEquals(name));
 			if (tag == null)
 				return new GuideResult($"Tag ``{name}`` not found!");
-			File.Delete(Path.Combine(rootDir, $"{guid}", $"{tag.ID}.json"));
+			File.Delete(Path.Combine(rootDir, guid.ToString(), $"{tag.ID}.json"));
 			return new GuideResult("", true);
 		}
 
@@ -167,14 +170,14 @@ namespace TheGuide.Systems
 
 			foreach (var kvp in jsonfiles(guid))
 			{
-				var json = JsonConvert.DeserializeObject<TagJson>(File.ReadAllText(kvp.Key));
+				var json = JsonConvert.DeserializeObject<TagJson>(Tools.FileReadToEnd(Program._locker, kvp.Key));
 				long parsed;
 				if (long.TryParse(Path.GetFileNameWithoutExtension(kvp.Key), out parsed))
 				{
 					if (json.ID == default(long))
 					{
 						json.ID = parsed;
-						File.WriteAllText(kvp.Key, json.Serialize());
+						Tools.FileWrite(Program._locker, kvp.Key, json.Serialize());
 					}
 				}
 				else

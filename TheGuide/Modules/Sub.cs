@@ -620,7 +620,7 @@ namespace TheGuide.Modules
 
 			var result = await serverJson.Write(Context.Guild.Id);
 			await ReplyAsync(result.IsSuccess
-				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated {channel.Mention}"
+				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated with {channel.Mention}"
 				: result.ErrorReason);
 		}
 
@@ -700,7 +700,7 @@ namespace TheGuide.Modules
 
 			var result = await serverJson.Write(Context.Guild.Id);
 			await ReplyAsync(result.IsSuccess
-				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated with role ``{role.Name}``"
+				? $"Removed {data.Count} subscription{(data.Count > 1 ? "s" : "")} associated with ``{role.Name}``"
 				: result.ErrorReason);
 		}
 

@@ -167,8 +167,8 @@ namespace TheGuide.Systems
 			{
 				var path = Path.Combine(rootDir, $"{guid}", $"server.json");
 				var json = input.Serialize();
-				File.WriteAllText(path, json);
-				var raw = File.ReadAllText(path);
+				Tools.FileWrite(Program._locker, path, json);
+				var raw = Tools.FileReadToEnd(Program._locker, path);
 				var isSuccess = string.Equals(raw, json);
 				return
 					new GuideResult(
@@ -190,8 +190,8 @@ namespace TheGuide.Systems
 
 				var path = Path.Combine(rootDir, $"{guid}", $"{uid}.json");
 				var json = input.Serialize();
-				File.WriteAllText(path, json);
-				var raw = File.ReadAllText(path);
+				Tools.FileWrite(Program._locker, path, json);
+				var raw = Tools.FileReadToEnd(Program._locker, path);
 				var isSuccess = string.Equals(raw, json);
 				return
 					new GuideResult(
@@ -233,8 +233,9 @@ namespace TheGuide.Systems
 				json.Validate();
 				var result = await CreateUserSub(guid, parsed, json, true);
 				var newJson = jsonfiles(guid).FirstOrDefault(j => j == $"{json.UID}");
-				if (result.IsSuccess && newJson != null &&
-					oldJson != File.ReadAllText(Path.Combine(rootDir, $"{guid}", $"{json.UID}")))
+				if (result.IsSuccess 
+					&& newJson != null 
+					&& oldJson != Tools.FileReadToEnd(Program._locker, Path.Combine(rootDir, guid.ToString(), json.UID.ToString())))
 					count.Add(json.Name);
 			}
 			return count;
@@ -244,16 +245,16 @@ namespace TheGuide.Systems
 			jsonfiles(guid).Any(n => string.Equals(n, uid.ToString()));
 
 		public static SubUserJson LoadSubUserJson(string path) =>
-			JsonConvert.DeserializeObject<SubUserJson>(File.ReadAllText(path));
+			JsonConvert.DeserializeObject<SubUserJson>(Tools.FileReadToEnd(Program._locker, path));
 
 		public static SubUserJson LoadSubUserJson(ulong guid, ulong uid) =>
-			JsonConvert.DeserializeObject<SubUserJson>(File.ReadAllText(Path.Combine(rootDir, $"{guid}", $"{uid}.json")));
+			JsonConvert.DeserializeObject<SubUserJson>(Tools.FileReadToEnd(Program._locker, Path.Combine(rootDir, guid.ToString(), $"{uid}.json")));
 
 		public static SubServerJson LoadSubServerJson(string path) =>
 			JsonConvert.DeserializeObject<SubServerJson>(path);
 
 		public static SubServerJson LoadSubServerJson(ulong guid) =>
-			JsonConvert.DeserializeObject<SubServerJson>(File.ReadAllText(Path.Combine(rootDir, $"{guid}", "server.json")));
+			JsonConvert.DeserializeObject<SubServerJson>(Tools.FileReadToEnd(Program._locker, Path.Combine(rootDir, guid.ToString(), "server.json")));
 
 		public static bool AnySubId(ulong guid, ulong uid) =>
 			jsonfiles(guid).Any(n => string.Equals(n, uid.ToString()));

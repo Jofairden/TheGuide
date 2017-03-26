@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Newtonsoft.Json.Linq;
@@ -45,8 +46,9 @@ namespace TheGuide.Systems
 			// Data.txt present, read
 			if (File.Exists(path))
 			{
-				var savedBinary = File.ReadAllText(path);
-				var savedBinaryDate = Tools.DateTimeFromUnixTimestampSeconds(long.Parse(savedBinary));
+				var savedBinary =  Tools.FileReadToEnd(Program._locker, path);
+				var parsedBinary = long.Parse(savedBinary);
+				var savedBinaryDate = Tools.DateTimeFromUnixTimestampSeconds(parsedBinary);
 				dateDiff = Tools.DateTimeFromUnixTimestampSeconds(Tools.GetCurrentUnixTimestampSeconds()) - savedBinaryDate;
 			}
 
@@ -60,10 +62,11 @@ namespace TheGuide.Systems
 				foreach (var jtoken in modlist)
 				{
 					var name = jtoken.SelectToken("name").ToObject<string>().RemoveWhitespace();
-					File.WriteAllText(Path.Combine(modDir, $"{name}.json"), jtoken.ToString());
+					var jsonPath = Path.Combine(modDir, $"{name}.json");
+					Tools.FileWrite(Program._locker, jsonPath, jtoken.ToString());
 				}
 
-				File.WriteAllText(path, $"{Tools.GetCurrentUnixTimestampSeconds()}");
+				Tools.FileWrite(Program._locker, path, Tools.GetCurrentUnixTimestampSeconds().ToString());
 			}
 		}
 

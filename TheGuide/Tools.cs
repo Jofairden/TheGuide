@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
@@ -17,7 +19,65 @@ namespace TheGuide
 	// Some helpful methods etc.
 	public static class Tools
 	{
-		public static Random Rand = new Random();
+		public static string FileReadToEnd(object _locker, string filePath)
+		{
+			string buffer;
+			lock (_locker)
+			{
+				using (var stream = File.Open(filePath, FileMode.Open))
+				using (var reader = new StreamReader(stream))
+					buffer = reader.ReadToEnd();
+			}
+			return buffer;
+		}
+	
+		public static void FileWrite(object _locker, string path, string content)
+		{
+			lock (_locker)
+			{
+				using (var stream = File.Open(path, FileMode.Create))
+				using (var writer = new StreamWriter(stream))
+					writer.Write(content);
+			}
+		}
+
+		public static void FileWriteLine(object _locker, string path, string content)
+		{
+			lock (_locker)
+			{
+				using (var stream = File.Open(path, FileMode.Create))
+				using (var writer = new StreamWriter(stream))
+					writer.WriteLine(content);
+			}
+		}
+
+		public static void FileAppend(object _locker, string path, string content)
+		{
+			lock (_locker)
+			{
+				using (var stream = File.Open(path, FileMode.Append))
+				using (var writer = new StreamWriter(stream))
+					writer.Write(content);
+			}
+		}
+
+		public static void FileAppendLine(object _locker, string path, string content)
+		{
+			lock (_locker)
+			{
+				using (var stream = File.Open(path, FileMode.Append))
+				using (var writer = new StreamWriter(stream))
+					writer.WriteLine(content);
+			}
+		}
+
+		public static byte[] UnicodeGetBytes(this string content) =>
+			Encoding.Unicode.GetBytes(content);
+
+		public static string UnicodeGetString(this byte[] buffer) =>
+			Encoding.Unicode.GetString(buffer);
+
+		public static Random Rand { get; } = new Random();
 
 		public static bool ICEquals(this string source, string comparison) =>
 			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
