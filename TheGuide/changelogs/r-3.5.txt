@@ -5,6 +5,8 @@ Rewritten file IO, code should no longer fail
 
 `Commands`
 Improved homepage feedback handling for ?mod, no longer shows when empty
+?mod will now try to cache a mod if it's not cached yet instantly, when called
+?mod now accepts >count and will return cached mod count (?mod >count)
 
 `Other`
 Now logging console output

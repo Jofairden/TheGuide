@@ -481,6 +481,13 @@ namespace TheGuide.Modules
 		public async Task Mod([Remainder] string mod)
 		{
 			mod = mod.RemoveWhitespace();
+
+			if (mod.ICEquals(">count"))
+			{
+				await ReplyAsync($"Found `{ModSystem.mods.Count()}` cached mods");
+				return;
+			}
+
 			var result = await ShowSimilarMods(mod);
 
 			if (result)
@@ -491,7 +498,7 @@ namespace TheGuide.Modules
 					return;
 
 				// Some mod is found continue.
-				var modjson = JObject.Parse(File.ReadAllText(ModSystem.modPath(mod)));
+				var modjson = JObject.Parse(Tools.FileReadToEnd(Program._locker, ModSystem.modPath(mod)));
 				var properties = new List<string>();
 				var culture = new CultureInfo("en-US");
 				foreach (var property in modjson.Properties())
@@ -506,7 +513,7 @@ namespace TheGuide.Modules
 							: $"{property.Value}";
 					properties.Add($"{Format.Bold(name.FirstCharToUpper())}: {value}");
 				}
-				properties.Add($"**{Format.Bold("Widget")}: <{ModSystem.widgetUrl}{mod}.png>");
+				properties.Add($"{Format.Bold("Widget")}: <{ModSystem.widgetUrl}{mod}.png>");
 				using (var client = new System.Net.Http.HttpClient())
 				{
 					var response = await client.GetAsync(ModSystem.queryHomepageUrl + mod);
@@ -569,6 +576,8 @@ namespace TheGuide.Modules
 			var mods = ModSystem.mods.Where(m => string.Equals(m, mod, StringComparison.CurrentCultureIgnoreCase));
 
 			if (mods.Any()) return true;
+			var cached = await ModSystem.TryCacheMod(mod);
+			if (cached) return true;
 
 			const string msg = "Mod with that name doesn\'t exist";
 			var modMsg = "\nNo similar mods found..."; ;

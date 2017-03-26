@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace TheGuide.Systems
@@ -15,6 +16,7 @@ namespace TheGuide.Systems
 		internal const string queryHomepageUrl = "http://javid.ddns.net/tModLoader/tools/querymodhomepage.php?modname=";
 		internal const string widgetUrl = "http://javid.ddns.net/tModLoader/widget/widgetimage/";
 		internal const string xmlUrl = "http://javid.ddns.net/tModLoader/listmods.php";
+		internal const string modInfoUrl = "http://javid.ddns.net/tModLoader/tools/modinfo.php";
 		internal const string homepageUrl = "http://javid.ddns.net/tModLoader/moddescription.php";
 		internal const string popularUrl = "http://javid.ddns.net/tModLoader/tools/populartop10.php";
 		internal const string hotUrl = "http://javid.ddns.net/tModLoader/tools/hottop10.php";
@@ -63,11 +65,22 @@ namespace TheGuide.Systems
 				{
 					var name = jtoken.SelectToken("name").ToObject<string>().RemoveWhitespace();
 					var jsonPath = Path.Combine(modDir, $"{name}.json");
-					Tools.FileWrite(Program._locker, jsonPath, jtoken.ToString());
+					Tools.FileWrite(Program._locker, jsonPath, jtoken.ToString(Formatting.Indented));
 				}
 
 				Tools.FileWrite(Program._locker, path, Tools.GetCurrentUnixTimestampSeconds().ToString());
 			}
+		}
+
+		public static async Task<bool> TryCacheMod(string name)
+		{
+			var data = await DownloadSingleData(name);
+			if (data.StartsWith("Failed:"))
+				return false;
+
+			var mod = JObject.Parse(data);
+			Tools.FileWrite(Program._locker,  Path.Combine(modDir, $"{mod.SelectToken("name").ToObject<string>()}.json"), mod.ToString(Formatting.Indented));
+			return true;
 		}
 
 		/// <summary>
@@ -90,17 +103,27 @@ namespace TheGuide.Systems
 			}
 		}
 
-		// Very nasty, needs something better
-		private static async Task<string> GetTMLVersion()
+		private static async Task<string> DownloadSingleData(string name)
 		{
 			using (var client = new System.Net.Http.HttpClient())
 			{
-				var response =
-					await client.GetAsync(
-						"https://raw.githubusercontent.com/bluemagic123/tModLoader/master/solutions/CompleteRelease.bat");
+				var response = await client.GetAsync(modInfoUrl + $"?modname={name}");
 				var postResponse = await response.Content.ReadAsStringAsync();
-				return postResponse.Split('\n')[3].Split('=')[1];
+				return postResponse;
 			}
 		}
+
+		// Very nasty, needs something better
+		//private static async Task<string> GetTMLVersion()
+		//{
+		//	using (var client = new System.Net.Http.HttpClient())
+		//	{
+		//		var response =
+		//			await client.GetAsync(
+		//				"https://raw.githubusercontent.com/bluemagic123/tModLoader/master/solutions/CompleteRelease.bat");
+		//		var postResponse = await response.Content.ReadAsStringAsync();
+		//		return postResponse.Split('\n')[3].Split('=')[1];
+		//	}
+		//}
 	}
 }
