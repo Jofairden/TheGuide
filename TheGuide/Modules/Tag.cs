@@ -208,7 +208,7 @@ namespace TheGuide.Modules
 
 			string header = $"Showing info for tag ``{tag.Name}``";
 			string content = string.Join("\n",
-				JsonConvert.DeserializeObject<JObject>(tag.SerializeToJson())
+				JsonConvert.DeserializeObject<JObject>(tag.Serialize())
 					.Properties()
 					.Select(p => $"**{p.Name}**: {(p.Value.Type == JTokenType.Array ? string.Join(", ", p.Values()) : p.Value)}"));
 

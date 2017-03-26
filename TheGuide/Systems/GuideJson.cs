@@ -21,7 +21,7 @@ namespace TheGuide.Systems
 	public abstract class GuideJson : IGuideJson
 	{
 		public virtual string Serialize() =>
-			JsonConvert.SerializeObject(this);
+			this.ToJson();
 
 		public virtual void Validate()
 		{
@@ -46,8 +46,5 @@ namespace TheGuide.Systems
 
 			return string.Join("\n", fields.Select(x => $"**{x.Key.AddSpacesToSentence().Uncapitalize()}**: {x.Value}").ToArray());
 		}
-
-		public string SerializeToJson() =>
-			JsonConvert.SerializeObject(this);
 	}
 }

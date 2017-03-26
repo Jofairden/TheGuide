@@ -67,7 +67,7 @@ namespace TheGuide.Systems
 					var path = Path.Combine(rootDir, $"{guild.Id}.json");
 					if (File.Exists(path)) continue;
 					var json = new ConfigJson { guid = guild.Id };
-					Tools.FileWrite(Program._locker, path, json.SerializeToJson());
+					Tools.FileWrite(Program._locker, path, json.Serialize());
 				}
 			});
 		}
@@ -82,7 +82,7 @@ namespace TheGuide.Systems
 				if (check
 					&& !configs().Contains(guid))
 					return new GuideResult($"Config for {guid} not found");
-				Tools.FileWrite(Program._locker, Path.Combine(rootDir, $"{guid}.json"), input.SerializeToJson());
+				Tools.FileWrite(Program._locker, Path.Combine(rootDir, $"{guid}.json"), input.Serialize());
 				var result = new GuideResult();
 				result.SetIsSuccess(configs().Contains(guid));
 				return result;
