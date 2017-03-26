@@ -565,7 +565,7 @@ namespace TheGuide.Modules
 			if (result)
 			{
 				// Some mod is found continue.
-				var modjson = JObject.Parse(File.ReadAllText(ModSystem.modPath(mod)));
+				var modjson = JObject.Parse(Tools.FileReadToEnd(Program._locker, ModSystem.modPath(mod)));
 				await ReplyAsync($"**{modjson.Property("displayname").Value}**: {modjson.Property("version").Value}".Cap(2000));
 			}
 		}

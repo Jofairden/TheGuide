@@ -41,11 +41,11 @@ namespace TheGuide.Systems
 			config(Path.Combine(rootDir, $"{guid}.json"));
 
 		public static ConfigJson config(string path) =>
-			JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(path));
+			JsonConvert.DeserializeObject<ConfigJson>(Tools.FileReadToEnd(Program._locker, path));
 
 		public static IEnumerable<ulong> configs() =>
 			Directory.GetFiles(rootDir, "*.json")
-				.Select(x => JsonConvert.DeserializeObject<ConfigJson>(File.ReadAllText(x)).guid);
+				.Select(x => JsonConvert.DeserializeObject<ConfigJson>(Tools.FileReadToEnd(Program._locker, x)).guid);
 
 		public static Dictionary<ulong, ConfigJson> jsonfiles(ulong guid) =>
 			Directory.GetFiles(rootDir, "*.json")
@@ -67,7 +67,7 @@ namespace TheGuide.Systems
 					var path = Path.Combine(rootDir, $"{guild.Id}.json");
 					if (File.Exists(path)) continue;
 					var json = new ConfigJson { guid = guild.Id };
-					File.WriteAllText(path, json.SerializeToJson());
+					Tools.FileWrite(Program._locker, path, json.SerializeToJson());
 				}
 			});
 		}
@@ -82,7 +82,7 @@ namespace TheGuide.Systems
 				if (check
 					&& !configs().Contains(guid))
 					return new GuideResult($"Config for {guid} not found");
-				File.WriteAllText(Path.Combine(rootDir, $"{guid}.json"), input.SerializeToJson());
+				Tools.FileWrite(Program._locker, Path.Combine(rootDir, $"{guid}.json"), input.SerializeToJson());
 				var result = new GuideResult();
 				result.SetIsSuccess(configs().Contains(guid));
 				return result;
