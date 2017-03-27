@@ -24,7 +24,7 @@ namespace TheGuide.Modules
 		public async Task SetRole([Remainder] IRole role)
 		{
 			var config = ConfigSystem.config(Context.Guild.Id);
-			if (config.admRoles.Contains(role.Id))
+			if (!config.admRoles.Contains(role.Id))
 				await AddRole(role);
 			else
 				await RemoveRole(role);
@@ -62,7 +62,7 @@ namespace TheGuide.Modules
 			}
 			else
 			{
-				await ReplyAsync($"`{role.Name}` is was not a config admin role, impossible to remove.");
+				await ReplyAsync($"`{role.Name}` was not a config admin role, impossible to remove.");
 			}
 		}
 	}

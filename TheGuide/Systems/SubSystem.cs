@@ -13,12 +13,10 @@ namespace TheGuide.Systems
 	{
 		public SubServerJson(SubServerJson source = null)
 		{
-			if (source != null)
-			{
-				GUID = source.GUID;
-				Data = new Dictionary<ulong, ulong>(source.Data);
-				AdminRoles = new List<ulong>(source.AdminRoles);
-			}
+			if (source == null) return;
+			GUID = source.GUID;
+			Data = new Dictionary<ulong, ulong>(source.Data);
+			AdminRoles = new List<ulong>(source.AdminRoles);
 		}
 
 		public async Task<GuideResult> Write(ulong guid)
@@ -33,8 +31,8 @@ namespace TheGuide.Systems
 
 		public override void Validate()
 		{
-			Data = !Data.Any() ? new Dictionary<ulong, ulong>() : Data;
-			AdminRoles = !AdminRoles.Any() ? new List<ulong>() : AdminRoles;
+			Data = Data ?? new Dictionary<ulong, ulong>();
+			AdminRoles = AdminRoles ?? new List<ulong>();
 		}
 	}
 
@@ -42,12 +40,10 @@ namespace TheGuide.Systems
 	{
 		public SubUserJson(SubUserJson source = null)
 		{
-			if (source != null)
-			{
-				Name = source.Name;
-				UID = source.UID;
-				SubRoles = new List<ulong>(source.SubRoles);
-			}
+			if (source == null) return;
+			Name = source.Name;
+			UID = source.UID;
+			SubRoles = new List<ulong>(source.SubRoles);
 		}
 
 		public async Task<GuideResult> Write(ulong guid, bool ignore = false)
@@ -58,12 +54,12 @@ namespace TheGuide.Systems
 
 		public string Name { get; set; }
 		public ulong UID { get; set; }
-		public List<ulong> SubRoles { get; set; }
+		public List<ulong> SubRoles { get; set; } = new List<ulong>();
 
 		public override void Validate()
 		{
 			Name = string.IsNullOrEmpty(Name) ? "null" : Name;
-			SubRoles = !SubRoles.Any() ? new List<ulong>() : SubRoles;
+			SubRoles = SubRoles ?? new List<ulong>();
 		}
 	}
 
@@ -233,8 +229,8 @@ namespace TheGuide.Systems
 				json.Validate();
 				var result = await CreateUserSub(guid, parsed, json, true);
 				var newJson = jsonfiles(guid).FirstOrDefault(j => j == $"{json.UID}");
-				if (result.IsSuccess 
-					&& newJson != null 
+				if (result.IsSuccess
+					&& newJson != null
 					&& oldJson != Tools.FileReadToEnd(Program._locker, Path.Combine(rootDir, guid.ToString(), json.UID.ToString())))
 					count.Add(json.Name);
 			}

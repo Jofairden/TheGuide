@@ -112,7 +112,7 @@ namespace TheGuide.Systems
 			long useId = input.ID != default(long) ? input.ID : idGen.GenerateId();
 			input.ID = useId;
 			Tools.FileWrite(
-				Program._locker, 
+				Program._locker,
 				Path.Combine(rootDir, guid.ToString(), $"{useId}.json"),
 				JsonConvert.SerializeObject(input));
 			var result = new GuideResult();

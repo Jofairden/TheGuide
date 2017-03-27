@@ -5,20 +5,9 @@ using Newtonsoft.Json;
 namespace TheGuide.Systems
 {
 	/// <summary>
-	/// GuideJson Interface
-	/// </summary>
-	public interface IGuideJson
-	{
-		string Serialize();
-		void Validate();
-		void Validate(long? id);
-	}
-
-	//todo: improve
-	/// <summary>
 	/// GuideJson class
 	/// </summary>
-	public abstract class GuideJson : IGuideJson
+	public abstract class GuideJson
 	{
 		public virtual string Serialize() =>
 			this.ToJson();

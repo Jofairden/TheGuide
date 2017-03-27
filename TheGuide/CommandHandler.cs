@@ -38,7 +38,7 @@ namespace TheGuide
 		private async Task Client_MessageReceived(SocketMessage arg)
 		{
 			var message = arg as SocketUserMessage;
-			var context = new CommandContext(_client, message);
+			var context = new SocketCommandContext(_client, message);
 			int argPos = 0;
 
 			// Checks for when command should not be ran.
@@ -88,10 +88,9 @@ namespace TheGuide
 				else
 				{
 					// Tag not found
-
-					if (result.ToString() == "BadArgCount: The input text has too few parameters.")
+					if (result.Error == CommandError.BadArgCount) // Custom handler for this error
 						await _service.ExecuteAsync(context, $"help {message.Content.Substring(1)}", _map);
-					else if (result.ToString() != "UnknownCommand: Unknown command.") // We do not want to display this error
+					else if (result.Error != CommandError.UnknownCommand) // We do not want to display this error
 						await context.Channel.SendMessageAsync($"{Format.Bold("Error")} on ``{message.Content}``\n{result}");
 				}
 

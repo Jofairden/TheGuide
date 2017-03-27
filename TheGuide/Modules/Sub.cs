@@ -192,25 +192,25 @@ namespace TheGuide.Modules
 
 		private async Task<int> TryClearSubRoles()
 		{
-			await Task.Yield();
-			var guild = Context.Guild as SocketGuild;
-			var serverJson = SubSystem.LoadSubServerJson(guild.Id);
+			var serverJson = SubSystem.LoadSubServerJson(Context.Guild.Id);
 
 			// Get roles
 			var roles =
 				serverJson.Data
 					.Select(x =>
-						guild.GetRole(x.Value))
+						Context.Guild.GetRole(x.Value))
 					.Where(x =>
 						x != null)
-					.Concat(guild.Roles)
+					.Concat(Context.Guild.Roles)
 					.Where(x =>
 						x.Name.StartsWith("sub-")
 						&& serverJson.Data.All(y => y.Value != x.Id))
 					.ToList();
 
-			roles.ForEach(async x =>
-				await x.DeleteAsync());
+			foreach (var role in roles)
+			{
+				await role.DeleteAsync();
+			}
 
 			return roles.Count;
 		}
@@ -544,7 +544,7 @@ namespace TheGuide.Modules
 			if (role == null)
 			{
 				role =
-					await Context.Guild.CreateRoleAsync(roleName);
+					await (Context.Guild as IGuild).CreateRoleAsync(roleName) as SocketRole;
 				var rolePerms =
 					new OverwritePermissions(readMessages: PermValue.Allow, readMessageHistory: PermValue.Allow);
 				await channel.AddPermissionOverwriteAsync(role, rolePerms);

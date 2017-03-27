@@ -13,6 +13,7 @@ using Discord;
 using Discord.Addons.EmojiTools;
 using Discord.Commands;
 using Discord.WebSocket;
+using NCalc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TheGuide.Preconditions;
@@ -569,6 +570,25 @@ namespace TheGuide.Modules
 				await ReplyAsync($"**{modjson.Property("displayname").Value}**: {modjson.Property("version").Value}".Cap(2000));
 			}
 		}
+
+		[Command("exit")]
+		[RequireOwner]
+		public async Task Exit([Remainder] string rem = null)
+		{
+			await ReplyAsync($"Time to quit! {UnicodeEmoji.FromText(":wave:")}");
+			//Context.Client.StopAsync();
+			//Context.Client.LogoutAsync();
+			Program.SystemTC.Cancel();
+		}
+
+		[Command("eval")]
+		public async Task Eval([Remainder] string data)
+		{
+			Expression dt = new Expression(data, EvaluateOptions.IgnoreCase);
+			dynamic eval = dt.Evaluate();
+			await ReplyAsync($"Evaluated `{data}`, result:\n```{eval}```");
+		}
+
 
 		// Helper method
 		private async Task<bool> ShowSimilarMods(string mod)

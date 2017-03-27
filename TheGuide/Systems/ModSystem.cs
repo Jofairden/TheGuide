@@ -56,7 +56,7 @@ namespace TheGuide.Systems
 
 			// Needs to maintain data
 			if (dateDiff == TimeSpan.MinValue
-				|| dateDiff.TotalDays > 1d)
+				|| dateDiff.TotalHours > 8d)
 			{
 				var data = await DownloadData();
 				var modlist = JObject.Parse(data).SelectToken("modlist").ToObject<JArray>();

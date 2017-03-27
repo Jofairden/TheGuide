@@ -60,7 +60,7 @@ namespace TheGuide
 		public static stringIntDict buffConsts;
 
 		// Variables 
-		internal CancellationTokenSource SystemTC;
+		internal static CancellationTokenSource SystemTC;
 		internal CancellationToken SystemCT;
 
 		private readonly Dictionary<ulong, DateTime> cooldowns = new Dictionary<ulong, DateTime>();
@@ -92,6 +92,9 @@ namespace TheGuide
 				MessageCacheSize = 50,
 			});
 
+			SystemTC = new CancellationTokenSource();
+			SystemCT = SystemTC.Token;
+
 			client.Log += Client_Log;
 			client.LatencyUpdated += Client_LatencyUpdated;
 			client.GuildMemberUpdated += Client_GuildMemberUpdated;
@@ -117,31 +120,7 @@ namespace TheGuide
 			handler = new CommandHandler();
 			await handler.Install(client, map);
 
-
-			SystemTC = new CancellationTokenSource();
-			SystemCT = SystemTC.Token;
-
-			await Task.Run(async () =>
-			{
-				while (true)
-				{
-					try
-					{
-						if (SystemCT.IsCancellationRequested) break;
-						await ConfigSystem.Maintain(client);
-						await TagSystem.Maintain(client);
-						await SubSystem.Maintain(client);
-						await ModSystem.Maintain(client);
-						await Task.Delay(900000, SystemCT);
-					}
-					catch (Exception e)
-					{
-						await Client_Log(new LogMessage(LogSeverity.Critical, "SystemMain", "", e));
-					}
-				}
-			}, SystemCT);
-
-			await Task.Delay(-1);
+			await Task.Delay(-1, SystemCT);
 		}
 
 		private async Task Client_Ready()
@@ -152,6 +131,29 @@ namespace TheGuide
 				await Task.Delay(5000);
 				await client.SetGameAsync("Terraria");
 			}
+
+			await Task.Run(async () =>
+			{
+				while (true)
+				{
+					try
+					{
+						if (client != null)
+						{
+							if (SystemCT.IsCancellationRequested) break;
+							await ConfigSystem.Maintain(client);
+							await TagSystem.Maintain(client);
+							await SubSystem.Maintain(client);
+							await ModSystem.Maintain(client);
+							await Task.Delay(900000, SystemCT);
+						}
+					}
+					catch (Exception e)
+					{
+						await Client_Log(new LogMessage(LogSeverity.Critical, "SystemMain", "", e));
+					}
+				}
+			}, SystemCT);
 		}
 
 		private async Task Client_ChannelDestroyed(SocketChannel c)
