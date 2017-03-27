@@ -107,10 +107,6 @@ namespace TheGuide
 			// Token.cs is left out intentionally
 			await client.LoginAsync(TokenType.Bot, Token.TestToken);
 			await client.StartAsync();
-			//await Task.Delay(5000); // Give some time to connect
-
-			// After connection
-
 
 			// Map
 			var map = new DependencyMap();
@@ -128,7 +124,7 @@ namespace TheGuide
 			if (!client.CurrentUser.Game.HasValue)
 			{
 				await client.SetGameAsync("READY " + Program.version);
-				await Task.Delay(5000);
+				await Task.Delay(5000, SystemCT);
 				await client.SetGameAsync("Terraria");
 			}
 
