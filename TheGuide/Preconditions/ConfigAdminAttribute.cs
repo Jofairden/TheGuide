@@ -17,7 +17,7 @@ namespace TheGuide.Preconditions
 			var isAdmin = guildUser.GuildPermissions.Administrator;
 
 			return Task.FromResult
-				(isAdmin || CheckResult(context as CommandContext, command, map)
+				(isAdmin || CheckResult(context as SocketCommandContext, command, map)
 				? PreconditionResult.FromSuccess() : PreconditionResult.FromError("User does not have sufficient privileges"));
 		}
 

@@ -139,7 +139,7 @@ namespace TheGuide.Modules
 			tag = TagSystem.getTag(Context.Guild.Id, name);
 			if (tag != null)
 			{
-				if (await TagSystem.AttemptExecute(_service, _map, new CommandContext(Context.Client, Context.Message), name))
+				if (await TagSystem.AttemptExecute(_service, _map, new SocketCommandContext(Context.Client, Context.Message), name))
 					return;
 
 				affix = tag.Output;

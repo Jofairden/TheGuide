@@ -195,7 +195,7 @@ namespace TheGuide.Systems
 		/// <param name="context"></param>
 		/// <param name="name"></param>
 		/// <returns></returns>
-		public static async Task<bool> AttemptExecute(CommandService service, IDependencyMap map, CommandContext context, string name)
+		public static async Task<bool> AttemptExecute(CommandService service, IDependencyMap map, SocketCommandContext context, string name)
 		{
 			var tag = getTag(context.Guild.Id, name);
 			if (tag == null)
