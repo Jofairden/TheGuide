@@ -87,7 +87,7 @@ namespace TheGuide
 			// Client
 			client = new DiscordSocketClient(new DiscordSocketConfig
 			{
-				LogLevel = LogSeverity.Verbose,
+				LogLevel = LogSeverity.Debug,
 				AlwaysDownloadUsers = true,
 				MessageCacheSize = 50,
 			});
@@ -103,11 +103,6 @@ namespace TheGuide
 			client.ChannelDestroyed += Client_ChannelDestroyed;
 			client.Ready += Client_Ready;
 
-			// Connection
-			// Token.cs is left out intentionally
-			await client.LoginAsync(TokenType.Bot, Token.TestToken);
-			await client.StartAsync();
-
 			// Map
 			var map = new DependencyMap();
 			map.Add(cooldowns);
@@ -115,6 +110,10 @@ namespace TheGuide
 			// Handler
 			handler = new CommandHandler();
 			await handler.Install(client, map);
+
+			// Connection
+			await client.LoginAsync(TokenType.Bot, Token.TestToken);
+			await client.StartAsync();
 
 			await Task.Delay(-1, SystemCT);
 		}
@@ -134,15 +133,11 @@ namespace TheGuide
 				{
 					try
 					{
-						if (client != null)
-						{
-							if (SystemCT.IsCancellationRequested) break;
-							await ConfigSystem.Maintain(client);
-							await TagSystem.Maintain(client);
-							await SubSystem.Maintain(client);
-							await ModSystem.Maintain(client);
-							await Task.Delay(900000, SystemCT);
-						}
+						await ConfigSystem.Maintain(client);
+						await TagSystem.Maintain(client);
+						await SubSystem.Maintain(client);
+						await ModSystem.Maintain(client);
+						await Task.Delay(900000, SystemCT);
 					}
 					catch (Exception e)
 					{
@@ -191,14 +186,14 @@ namespace TheGuide
 			await SubSystem.MaintainUser(j.Guild, j);
 		}
 
-		private const int offset = -10;
-
+		// Log messages
 		private async Task Client_Log(LogMessage e)
 		{
-			var time = DateTime.Now.ToString("MM-dd-yyy", CultureInfo.InvariantCulture);
+			var time = DateTime.Now.ToString("MM-dd-yyyy", CultureInfo.InvariantCulture);
 			var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
 			var filepath = Path.Combine(path, time + ".txt");
-			var msg = $"~{$"[{e.Severity}]",offset}{$"[{e.Source}]",offset}{$"[{e.Message}]",offset}~";
+
+			var msg = $"[{DateTime.Now:dd/MM/yyyy H:mm:ss zzzz}] " + e.ToString().Substring(8);
 
 			Directory.CreateDirectory(path);
 			if (!File.Exists(filepath))
@@ -210,10 +205,10 @@ namespace TheGuide
 		}
 
 
+		// Set status based on latency
 		private async Task Client_LatencyUpdated(int i, int j)
 		{
 			await client.SetStatusAsync(
-				//maintenanceMode ? UserStatus.DoNotDisturb :
 				(client.ConnectionState == ConnectionState.Disconnected || j > 500) ? UserStatus.DoNotDisturb
 				: (client.ConnectionState == ConnectionState.Connecting || j > 250) ? UserStatus.Idle
 				: UserStatus.Online);
