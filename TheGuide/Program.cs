@@ -50,7 +50,7 @@ namespace TheGuide
 		internal static object _locker = new object();
 		private const ulong clientid = 282831244083855360;
 		private const ulong permissions = 536345663;
-		public const string version = "r-3.5";
+		public const string version = "r-3.6";
 
 		// Cache
 		public static stringShortDict itemConsts;

@@ -1,0 +1,7 @@
+﻿```Changelogs for r-3.6```
+`Bugfixes`
+
+`Commands`
+
+`Other`
+Improved logging code slightly
