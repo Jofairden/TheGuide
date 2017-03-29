@@ -187,7 +187,7 @@ namespace TheGuide
 		}
 
 		// Log messages
-		private async Task Client_Log(LogMessage e)
+		private Task Client_Log(LogMessage e)
 		{
 			var time = DateTime.Now.ToString("MM-dd-yyyy", CultureInfo.InvariantCulture);
 			var path = Path.Combine(AppContext.BaseDirectory, "dist", "logs");
@@ -201,7 +201,8 @@ namespace TheGuide
 
 			Tools.FileAppendLine(_locker, filepath, msg);
 
-			await Console.Out.WriteLineAsync(msg);
+			Console.WriteLine(msg);
+			return Task.CompletedTask;
 		}
 
 
