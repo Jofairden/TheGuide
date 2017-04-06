@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
@@ -15,6 +18,7 @@ namespace TheGuide.Modules
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
+		[Remarks("ping")]
 		[Ratelimit(2, 1, Measure.Minutes)]
 		public async Task Ping([Remainder] string rem = null)
 		{
@@ -48,6 +52,14 @@ namespace TheGuide.Modules
 		public async Task Version([Remainder] string rem = null) =>
 			await ReplyAsync(
 				$"I am running on `{ConfigManager.Properties.Version}`\n");
+
+		[Command("source")]
+		[Alias("source-code", "src")]
+		[Summary("Returns a link to the github repository of the bot")]
+		[Remarks("source")]
+		[Ratelimit(2, 1, Measure.Minutes)]
+		public async Task Src([Remainder] string rem = null) =>
+			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/TheGuide>");
 
 	}
 }
