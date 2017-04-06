@@ -18,8 +18,8 @@ namespace TheGuide.Modules
 		{
 			var sw = Stopwatch.StartNew();
 			var latency = Client.Latency;
-			var color = latency >= 500
-				? Helpers.Colors.SoftRed
+			var color = 
+				latency >= 500 ? Helpers.Colors.SoftRed
 				: latency >= 250 ? Helpers.Colors.SoftYellow
 				: Helpers.Colors.SoftGreen;
 
@@ -30,7 +30,10 @@ namespace TheGuide.Modules
 
 			var msg = await ReplyAsync(string.Empty, false, embed.Build());
 			await msg.ModifyAsync(
-				x => x.Embed = embed.WithDescription($"Latency: `{latency} ms`\nMessage: `{sw.ElapsedMilliseconds} ms`\nDelta: `{sw.ElapsedMilliseconds - latency} ms`").Build());
+				x =>
+					x.Embed = embed.WithDescription($"Latency: `{latency} ms`" +
+					                                $"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
+					                                $"\nDelta: `{sw.ElapsedMilliseconds - latency} ms`").Build());
 		}
 	}
 }

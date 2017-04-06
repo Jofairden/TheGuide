@@ -63,6 +63,10 @@ namespace TheGuide
 		// Set bot status based on ping
 		private async Task ClientLatencyUpdated(int i, int j)
 		{
+			if (_client.CurrentUser.Game.HasValue 
+				&& _client.CurrentUser.Game.Value.Name.StartsWith("READY"))
+				await _client.SetGameAsync("Terraria");
+
 			await _client.SetStatusAsync(
 				_client.ConnectionState == ConnectionState.Disconnected || j > 500
 					? UserStatus.DoNotDisturb
@@ -75,11 +79,7 @@ namespace TheGuide
 		private async Task ClientReady()
 		{
 			if (!_client.CurrentUser.Game.HasValue)
-			{
 				await _client.SetGameAsync("READY " + ConfigManager.Properties.Version);
-				await Task.Delay(8000);
-				await _client.SetGameAsync("Terraria");
-			}
 		}
 
 		internal async Task Login()
