@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <Authors>Daniël Zondervan</Authors>
+    <Company />
+    <Product>The Guide Discord Bot</Product>
+    <Description>A Discord bot specifically made for tModLoader</Description>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Addons.EmojiTools" Version="1.1.0-ci-00017" />
+    <PackageReference Include="Discord.Addons.Preconditions" Version="0.1.2-rc" />
+    <PackageReference Include="Discord.Addons.SimplePermissions" Version="0.8.19-rc" />
+    <PackageReference Include="Discord.Net" Version="1.0.0-rc2-00680" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

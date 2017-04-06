@@ -1,1 +1,0 @@
-screen -S TheGuide dotnet TheGuide.dll
