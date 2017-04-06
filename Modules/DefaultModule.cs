@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.Preconditions;
 using Discord.Commands;
 using Discord.WebSocket;
 
@@ -14,6 +15,7 @@ namespace TheGuide.Modules
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
+		[Ratelimit(2, 1, Measure.Minutes)]
 		public async Task Ping([Remainder] string rem = null)
 		{
 			var sw = Stopwatch.StartNew();
