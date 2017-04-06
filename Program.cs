@@ -42,6 +42,8 @@ namespace TheGuide
 			// Setup event handlers
 			_client.Log += ClientLog;
 			_client.JoinedGuild += ClientJoinGuild;
+			_client.Ready += ClientReady;
+			_client.LatencyUpdated += ClientLatencyUpdated;
 
 			// awaitable login
 			await Login();
@@ -58,14 +60,36 @@ namespace TheGuide
 			await Task.Delay(-1, Ct);
 		}
 
+		// Set bot status based on ping
+		private async Task ClientLatencyUpdated(int i, int j)
+		{
+			await _client.SetStatusAsync(
+				_client.ConnectionState == ConnectionState.Disconnected || j > 500
+					? UserStatus.DoNotDisturb
+					: _client.ConnectionState == ConnectionState.Connecting || j > 250
+						? UserStatus.Idle
+						: UserStatus.Online);
+		}
+
+		// Set game status when ready
+		private async Task ClientReady()
+		{
+			if (!_client.CurrentUser.Game.HasValue)
+			{
+				await _client.SetGameAsync("READY " + ConfigManager.Properties.Version);
+				await Task.Delay(8000);
+				await _client.SetGameAsync("Terraria");
+			}
+		}
+
 		internal async Task Login()
 		{
-			var Waiter = new TaskCompletionSource<bool>();
+			var waiter = new TaskCompletionSource<bool>();
 #pragma warning disable 1998
 			_client.Ready += async delegate
 #pragma warning restore 1998
 			{
-				Waiter.SetResult(true);
+				waiter.SetResult(true);
 			};
 
 			// Login and start bot
@@ -82,7 +106,7 @@ namespace TheGuide
 			await _client.LoginAsync(TokenType.Bot, ConfigManager.Properties.Token);
 			await _client.StartAsync();
 
-			await Waiter.Task;
+			await waiter.Task;
 		}
 
 		// We can do something when our bot joins a guild
