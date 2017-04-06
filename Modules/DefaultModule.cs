@@ -20,10 +20,12 @@ namespace TheGuide.Modules
 		{
 			var sw = Stopwatch.StartNew();
 			var latency = Client.Latency;
-			var color = 
-				latency >= 500 ? Helpers.Colors.SoftRed
-				: latency >= 250 ? Helpers.Colors.SoftYellow
-				: Helpers.Colors.SoftGreen;
+			var color =
+				latency >= 500
+					? Helpers.Colors.SoftRed
+					: latency >= 250
+						? Helpers.Colors.SoftYellow
+						: Helpers.Colors.SoftGreen;
 
 			var embed = new EmbedBuilder()
 				.WithTitle("Bot response time")
@@ -33,9 +35,19 @@ namespace TheGuide.Modules
 			var msg = await ReplyAsync(string.Empty, false, embed.Build());
 			await msg.ModifyAsync(
 				x =>
-					x.Embed = embed.WithDescription($"Latency: `{latency} ms`" +
-					                                $"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
-					                                $"\nDelta: `{Math.Abs(sw.ElapsedMilliseconds - latency)} ms`").Build());
+					x.Embed = embed.WithDescription($"Heartrate: `{60d / latency * 1000} bpm`" +
+													$"\nLatency: `{latency} ms`" +
+													$"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
+													$"\nDelta: `{Math.Abs(sw.ElapsedMilliseconds - latency)} ms`").Build());
 		}
+
+		[Command("version")]
+		[Summary("Returns the bot version")]
+		[Remarks("version")]
+		[Ratelimit(2, 1, Measure.Minutes)]
+		public async Task Version([Remainder] string rem = null) =>
+			await ReplyAsync(
+				$"I am running on `{ConfigManager.Properties.Version}`\n");
+
 	}
 }
