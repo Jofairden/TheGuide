@@ -10,6 +10,7 @@ namespace TheGuide.Modules
 {
 	public class GuideModuleBase<T> : ModuleBase<T> where T : class, ICommandContext
 	{
+		//property injection fixed in 00681
 		public IDependencyMap DependencyMap { get; set; }
 		public DiscordSocketClient Client { get; set; }
 		public CommandService CommandService { get; set; }

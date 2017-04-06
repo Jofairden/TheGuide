@@ -11,16 +11,6 @@ namespace TheGuide.Modules
 {
 	public class DefaultModule : GuideModuleBase<SocketCommandContext>
 	{
-		//https://i.imgur.com/iPEfTwz.png
-		//can be removed in some future build
-		//property injection issue
-		public DefaultModule(IDependencyMap map, DiscordSocketClient client, CommandService service) : base()
-		{
-			DependencyMap = map;
-			Client = client;
-			CommandService = service;
-		}
-
 		[Command("ping")]
 		[Alias("status")]
 		[Summary("Returns the bot response time")]
