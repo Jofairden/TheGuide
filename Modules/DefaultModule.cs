@@ -33,7 +33,7 @@ namespace TheGuide.Modules
 				x =>
 					x.Embed = embed.WithDescription($"Latency: `{latency} ms`" +
 					                                $"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
-					                                $"\nDelta: `{sw.ElapsedMilliseconds - latency} ms`").Build());
+					                                $"\nDelta: `{Math.Abs(sw.ElapsedMilliseconds - latency)} ms`").Build());
 		}
 	}
 }
