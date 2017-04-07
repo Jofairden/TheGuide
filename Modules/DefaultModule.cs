@@ -35,7 +35,7 @@ namespace TheGuide.Modules
 			var msg = await ReplyAsync(string.Empty, false, embed.Build());
 			await msg.ModifyAsync(
 				x =>
-					x.Embed = embed.WithDescription($"Heartrate: `{(60d / latency * 1000):####} bpm`" +
+					x.Embed = embed.WithDescription($"Heartrate: `{60d / latency * 1000:####} bpm`" +
 													$"\nLatency: `{latency} ms`" +
 													$"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
 													$"\nDelta: `{Math.Abs(sw.ElapsedMilliseconds - latency)} ms`").Build());
@@ -54,7 +54,7 @@ namespace TheGuide.Modules
 		[Summary("Returns a link to the github repository of the bot")]
 		[Remarks("source")]
 		[Ratelimit(2, 1, Measure.Minutes)]
-		public async Task Src([Remainder] string rem = null) =>
+		public async Task Source([Remainder] string rem = null) =>
 			await ReplyAsync("Here's how I am made! <https://github.com/Jofairden/TheGuide>");
 
 		[Command("info")]
