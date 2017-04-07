@@ -51,15 +51,15 @@ namespace TheGuide.Modules
 		[Ratelimit(2, 1, Measure.Minutes)]
 		public async Task Version([Remainder] string rem = null) =>
 			await ReplyAsync(
-				$"I am running on `{ConfigManager.Properties.Version}`\n");
+				$"I am running on `{ConfigManager.Properties.Version}` using `Discord.NET {DiscordConfig.Version} [API:{DiscordConfig.APIVersion}]`");
 
 		[Command("source")]
-		[Alias("source-code", "src")]
+		[Alias("src", "source-code")]
 		[Summary("Returns a link to the github repository of the bot")]
 		[Remarks("source")]
 		[Ratelimit(2, 1, Measure.Minutes)]
 		public async Task Src([Remainder] string rem = null) =>
-			await ReplyAsync($"Here's how I am made! <https://github.com/Jofairden/TheGuide>");
+			await ReplyAsync("Here's how I am made! <https://github.com/Jofairden/TheGuide>");
 
 		[Command("info")]
 		[Alias("about")]
