@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -75,13 +76,13 @@ namespace TheGuide.Modules
 				.AddInlineField("Bot version", ConfigManager.Properties.Version)
 				.AddInlineField("Heap Size", $"{Helpers.GetHeapSize()} MB")
 				.AddField("Other", $"Guilds: {client?.Guilds.Count}" +
-				                         $"\nChannels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
-				                         $" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
-				                         $" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
-				                         $"Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
-				                         $"Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
-				                         $"Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
-				                         $" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]")
+										 $"\nChannels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
+										 $" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
+										 $" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
+										 $"Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
+										 $"Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
+										 $"Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
+										 $" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]")
 				.Build());
 		}
 
@@ -107,6 +108,24 @@ namespace TheGuide.Modules
 				.WithColor(Helpers.Colors.GetLatencyColor(sw.ElapsedMilliseconds))
 				.AddField(x => x.WithName("Result").WithValue(eval.ToString()))
 				.Build());
+		}
+
+		[Command("modwidget")]
+		[Alias("widget")]
+		[Ratelimit(20, 1, Measure.Hours)]
+		public async Task Mod([Remainder] string mod)
+		{
+			mod = mod.RemoveWhitespace();
+			var similar = await ShowSimilarMods(mod);
+			if (similar)
+			{
+				var msg = await ReplyAsync("Generating widget...");
+
+				using (var client = new HttpClient())
+				using (var widgetStream = await client.GetStreamAsync($"{System.ModSystem.WidgetUrl}{mod}.png"))
+					await Context.Channel.SendFileAsync(widgetStream, $"widget-{mod}.png");
+				await msg.DeleteAsync();
+			}
 		}
 	}
 }
