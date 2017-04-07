@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Discord;
 
@@ -27,6 +28,20 @@ namespace TheGuide
 						: SoftGreen;
 		}
 
+		public static string Truncate(this string value, int length) =>
+			value?.Substring(0, Math.Min(value.Length, value.Length - length));
+
+		public static string PrettyPrint(this IEnumerable<string> list) =>
+			string.Join(", ", list.Select(v => $"`{v}`"));
+
+		public static string RemoveWhitespace(this string input) =>
+			new string(input.ToCharArray()
+				.Where(c => !char.IsWhiteSpace(c))
+				.ToArray());
+
+		public static string Cap(this string value, int length) =>
+			value?.Substring(0, Math.Abs(Math.Min(value.Length, length)));
+
 		public static bool ICEquals(this string source, string comparison) =>
 			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
 
@@ -48,5 +63,22 @@ namespace TheGuide
 		public static string GetHeapSize() =>
 			Math.Round(GC.GetTotalMemory(true) / (1024.0d * 1024.0d), 2).ToString(CultureInfo.InvariantCulture);
 
+		private static readonly DateTime UnixEpoch =
+			new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+		public static long GetCurrentUnixTimestampMillis() =>
+			(long)GetCurrentUnixTimespan().TotalMilliseconds;
+
+		public static DateTime DateTimeFromUnixTimestampMillis(long millis) =>
+			UnixEpoch.AddMilliseconds(millis);
+
+		public static long GetCurrentUnixTimestampSeconds() =>
+			(long)GetCurrentUnixTimespan().TotalSeconds;
+
+		public static TimeSpan GetCurrentUnixTimespan() =>
+			DateTime.UtcNow - UnixEpoch;
+
+		public static DateTime DateTimeFromUnixTimestampSeconds(long seconds) =>
+			UnixEpoch.AddSeconds(seconds);
 	}
 }
