@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Addons.EmojiTools;
 using Discord.Commands;
 using Discord.WebSocket;
 using TheGuide.System;
@@ -20,15 +22,20 @@ namespace TheGuide.Modules
 		public ModSystem ModSystem { get; set; }
 
 		// You can override ReplyAsync, do some stuff.
-		protected override Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null,
+		protected override async Task<IUserMessage> ReplyAsync(string message, bool isTTS = false, Embed embed = null,
 			RequestOptions options = null)
 		{
 			// Try to replace @everyone or @here if present
 			// \x200B is a no-width blank space
 			// By inserting it we basically sabotage the mentions
-			return base.ReplyAsync(
+			var msg = await base.ReplyAsync(
 				message.Replace(Context.Guild.EveryoneRole.Mention, "@every\x200Bone").Replace("@here", "@he\x200Bre"), isTTS,
 				embed, options);
+
+			await msg.AddReactionAsync("❌");
+			await msg.AddReactionAsync("📌");
+
+			return msg;
 		}
 
 

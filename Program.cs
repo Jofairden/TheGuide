@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -42,7 +44,7 @@ namespace TheGuide
 			{
 				AlwaysDownloadUsers = true,
 				LogLevel = LogSeverity.Debug,
-				MessageCacheSize = 250
+				MessageCacheSize = 500
 			});
 
 			// Setup event handlers
@@ -50,7 +52,8 @@ namespace TheGuide
 			_client.JoinedGuild += ClientJoinGuild;
 			_client.Ready += ClientReady;
 			_client.LatencyUpdated += ClientLatencyUpdated;
-
+			_client.ReactionAdded += ClientReactionAdded;
+			_client.ReactionRemoved += ClientReactionRemoved;
 			// awaitable login
 			await Login();
 
@@ -65,6 +68,45 @@ namespace TheGuide
 
 			// Block program until it's closed or task is canceled
 			await Task.Delay(-1, Ct);
+		}
+
+		private async Task ClientReactionRemoved(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+		{
+			// #599 Doesn't work, https://github.com/RogueException/Discord.Net/issues/599
+			// ReactionCount not decrementing
+			var msg = await message.GetOrDownloadAsync();
+			if (msg != null
+				&& !(reaction.User.Value is IWebhookUser)
+				&& !reaction.User.Value.IsBot
+				&& msg.Reactions.Where(x => x.Key.Name == "❌" || x.Key.Name == "📌").Count() >= 2)
+			{
+				if (reaction.Emoji.Name == "📌")
+				{
+					if (msg.Reactions[reaction.Emoji].ReactionCount <= 1)
+						await msg.UnpinAsync();
+				}
+			}
+		}
+
+		private async Task ClientReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+		{
+			var msg = await message.GetOrDownloadAsync();
+			if (msg != null
+				&& !(reaction.User.Value is IWebhookUser)
+				&& !reaction.User.Value.IsBot
+				&& msg.Reactions.Where(x => x.Key.Name == "❌" || x.Key.Name == "📌").Count() >= 2)
+			{
+				if (reaction.Emoji.Name == "❌")
+				{
+					if (msg.Reactions[reaction.Emoji].ReactionCount >= 1)
+						await msg.DeleteAsync();
+				}
+				else if (reaction.Emoji.Name == "📌")
+				{
+					if (msg.Reactions[reaction.Emoji].ReactionCount >= 1)
+						await msg.PinAsync();
+				}
+			}
 		}
 
 		// Set bot status based on ping
