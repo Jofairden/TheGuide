@@ -10,6 +10,7 @@ using Discord;
 using Discord.Addons.Preconditions;
 using Discord.Commands;
 using Discord.WebSocket;
+using NCalc;
 
 namespace TheGuide.Modules
 {
@@ -24,12 +25,7 @@ namespace TheGuide.Modules
 		{
 			var sw = Stopwatch.StartNew();
 			var latency = Client.Latency;
-			var color =
-				latency >= 500
-					? Helpers.Colors.SoftRed
-					: latency >= 250
-						? Helpers.Colors.SoftYellow
-						: Helpers.Colors.SoftGreen;
+			var color = Helpers.Colors.GetLatencyColor(latency);
 
 			var embed = new EmbedBuilder()
 				.WithTitle("Bot response time")
@@ -101,5 +97,21 @@ namespace TheGuide.Modules
 		[Ratelimit(20, 1, Measure.Hours)]
 		public async Task Github([Remainder]string rem) =>
 			await ReplyAsync($"Generated: <https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories>");
+
+		[Command("evaluate")]
+		[Alias("eval")]
+		[Ratelimit(20, 1, Measure.Hours)]
+		public async Task Evaluate([Remainder] string data)
+		{
+			var sw = Stopwatch.StartNew();
+			var dt = new Expression(data, EvaluateOptions.IgnoreCase);
+			dynamic eval = dt.Evaluate();
+			await ReplyAsync(string.Empty, false, new EmbedBuilder()
+				.WithTitle("Evaluation")
+				.WithDescription($"{data}")
+				.WithColor(Helpers.Colors.GetLatencyColor(sw.ElapsedMilliseconds))
+				.AddField(x => x.WithName("Result").WithValue(eval.ToString()))
+				.Build());
+		}
 	}
 }
