@@ -8,6 +8,8 @@
     <Product>The Guide Discord Bot</Product>
     <Description>A Discord bot specifically made for tModLoader</Description>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

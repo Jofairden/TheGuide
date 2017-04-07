@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Discord;
 
@@ -17,6 +19,27 @@ namespace TheGuide
 			public static Color SoftGreen => new Color((byte)184, 242, 140);
 			public static Color SoftYellow => new Color((byte)242, 235, 140);
 		}
+
+		public static bool ICEquals(this string source, string comparison) =>
+			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
+
+		public static bool ICStartsWith(this string source, string comparison) =>
+			source.StartsWith(comparison, StringComparison.OrdinalIgnoreCase);
+
+		public static string GenFullName(string username, string discriminator) =>
+			$"{username}#{discriminator}";
+
+		public static string GenFullName(string username, ulong discriminator) =>
+			$"{username}#{discriminator}";
+
+		public static string GenFullName(this IUser user) =>
+			GenFullName(user.Username, user.Discriminator);
+
+		public static string GetUptime() =>
+			(DateTime.Now - Process.GetCurrentProcess().StartTime).ToString(@"dd\.hh\:mm\:ss");
+
+		public static string GetHeapSize() =>
+			Math.Round(GC.GetTotalMemory(true) / (1024.0d * 1024.0d), 2).ToString(CultureInfo.InvariantCulture);
 
 	}
 }
