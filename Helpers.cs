@@ -18,6 +18,13 @@ namespace TheGuide
 			public static Color SoftRed => new Color((byte)242, 152, 140);
 			public static Color SoftGreen => new Color((byte)184, 242, 140);
 			public static Color SoftYellow => new Color((byte)242, 235, 140);
+
+			public static Color GetLatencyColor(float latency) =>
+				latency >= 500
+					? SoftRed
+					: latency >= 250
+						? SoftYellow
+						: SoftGreen;
 		}
 
 		public static bool ICEquals(this string source, string comparison) =>
