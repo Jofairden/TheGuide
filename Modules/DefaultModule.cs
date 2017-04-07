@@ -93,5 +93,12 @@ namespace TheGuide.Modules
 
 			await ReplyAsync(msg);
 		}
+
+		[Command("github")]
+		[Alias("gh")]
+		[Summary("Returns a search link for github searching for repositories matching your predicate")]
+		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
+		public async Task Github([Remainder]string rem) =>
+			await ReplyAsync($"Generated: <https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories>");
 	}
 }
