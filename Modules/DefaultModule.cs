@@ -35,7 +35,7 @@ namespace TheGuide.Modules
 			var msg = await ReplyAsync(string.Empty, false, embed.Build());
 			await msg.ModifyAsync(
 				x =>
-					x.Embed = embed.WithDescription($"Heartrate: `{60d / latency * 1000} bpm`" +
+					x.Embed = embed.WithDescription($"Heartrate: `{(60d / latency * 1000):####} bpm`" +
 													$"\nLatency: `{latency} ms`" +
 													$"\nMessage: `{sw.ElapsedMilliseconds} ms`" +
 													$"\nDelta: `{Math.Abs(sw.ElapsedMilliseconds - latency)} ms`").Build());
