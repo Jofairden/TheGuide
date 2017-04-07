@@ -68,26 +68,21 @@ namespace TheGuide.Modules
 			var application = await Context.Client.GetApplicationInfoAsync();
 			var client = Context.Client;
 
-			var msg = $"{Format.Bold("Info")}\n" +
-						$"- Author: {application.Owner.GenFullName()}" +
-						$" [ID: {application.Owner.Id}]\n" +
-						$"- Library: Discord.Net ({DiscordConfig.Version})" +
-						$" [API: {DiscordConfig.APIVersion}]\n" +
-						$"- Runtime: {AppContext.TargetFrameworkName} (r-{Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion}) {RuntimeInformation.FrameworkDescription} {RuntimeInformation.OSArchitecture} \n" +
-						$"- Uptime: {Helpers.GetUptime()} (dd\\.hh\\:mm\\:ss)\n" +
-						$"- Bot version: {ConfigManager.Properties.Version}" +
-						$"\n\n{Format.Bold("Stats")}\n" +
-						$"- Heap Size: {Helpers.GetHeapSize()} MB\n" +
-						$"- Guilds: {client?.Guilds.Count}\n" +
-						$"- Channels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
-						$" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
-						$" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
-						$"- Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
-						$"- Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
-						$"- Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
-						$" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]";
-
-			await ReplyAsync(msg);
+			await ReplyAsync(string.Empty, false, new EmbedBuilder()
+				.AddInlineField("Author", $"{application.Owner.GenFullName()}\n[ID: {application.Owner.Id}]")
+				.AddInlineField("Library", $"Discord.Net ({DiscordConfig.Version}) [API: {DiscordConfig.APIVersion}]")
+				.AddInlineField("Uptime", $"{Helpers.GetUptime()}\n(dd\\.hh\\:mm\\:ss)")
+				.AddInlineField("Bot version", ConfigManager.Properties.Version)
+				.AddInlineField("Heap Size", $"{Helpers.GetHeapSize()} MB")
+				.AddField("Other", $"Guilds: {client?.Guilds.Count}" +
+				                         $"\nChannels: {client?.Guilds.Sum(g => g.Channels.Count)}" +
+				                         $" [Text: {client?.Guilds.Sum(g => g.TextChannels.Count)}]" +
+				                         $" [Voice: {client?.Guilds.Sum(g => g.VoiceChannels.Count)}]\n" +
+				                         $"Roles: {client?.Guilds.Sum(g => g.Roles.Count)}\n" +
+				                         $"Emojis: {client?.Guilds.Sum(g => g.Emojis.Count)}\n" +
+				                         $"Users: {client?.Guilds.Sum(g => g.MemberCount)}" +
+				                         $" [Cached: {client?.Guilds.Sum(g => g.Users.Count)}]")
+				.Build());
 		}
 
 		[Command("github")]
