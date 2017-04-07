@@ -98,6 +98,7 @@ namespace TheGuide.Modules
 		[Alias("gh")]
 		[Summary("Returns a search link for github searching for repositories matching your predicate")]
 		[Remarks("github <search predicate>\ngithub tmodloader,mod in:name,description,topic")]
+		[Ratelimit(20, 1, Measure.Hours)]
 		public async Task Github([Remainder]string rem) =>
 			await ReplyAsync($"Generated: <https://github.com/search?q={Uri.EscapeDataString(rem)}&type=Repositories>");
 	}
