@@ -27,7 +27,7 @@ namespace TheGuide
 					DefaultRunMode = RunMode.Async,
 					LogLevel = LogSeverity.Verbose
 				});
-			Service.Log += Service_Log; 
+			Service.Log += ServiceLog; 
 
 			// Finds modules in our assembly and adds them to our command service
 			await Service.AddModulesAsync(Assembly.GetEntryAssembly());
@@ -35,7 +35,7 @@ namespace TheGuide
 			_client.MessageReceived += HandleCommand;
 		}
 
-		private Task Service_Log(LogMessage arg)
+		private Task ServiceLog(LogMessage arg)
 		{
 			if (arg.Exception != null)
 			{
