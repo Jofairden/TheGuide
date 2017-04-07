@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Discord;
 
 namespace TheGuide
@@ -20,10 +22,10 @@ namespace TheGuide
 			public static Color SoftGreen => new Color((byte)184, 242, 140);
 			public static Color SoftYellow => new Color((byte)242, 235, 140);
 
-			public static Color GetLatencyColor(float latency) =>
-				latency >= 500
+			public static Color GetLatencyColor(float latency, float offset = 0f) =>
+				latency - offset >= 500
 					? SoftRed
-					: latency >= 250
+					: latency - offset >= 250
 						? SoftYellow
 						: SoftGreen;
 		}
@@ -41,6 +43,9 @@ namespace TheGuide
 
 		public static string Cap(this string value, int length) =>
 			value?.Substring(0, Math.Abs(Math.Min(value.Length, length)));
+
+		public static bool Contains(this string source, string toCheck, StringComparison comp) =>
+			source.IndexOf(toCheck, comp) >= 0;
 
 		public static bool ICEquals(this string source, string comparison) =>
 			string.Equals(source, comparison, StringComparison.OrdinalIgnoreCase);
@@ -80,6 +85,38 @@ namespace TheGuide
 
 		public static DateTime DateTimeFromUnixTimestampSeconds(long seconds) =>
 			UnixEpoch.AddSeconds(seconds);
+
+		public static async Task WriteTextAsync(string filePath, string text)
+		{
+			byte[] encodedText = Encoding.Unicode.GetBytes(text);
+
+			using (FileStream sourceStream = new FileStream(filePath,
+				FileMode.OpenOrCreate, FileAccess.Write, FileShare.None,
+				bufferSize: 4096, useAsync: true))
+			{
+				await sourceStream.WriteAsync(encodedText, 0, encodedText.Length);
+			};
+		}
+
+		public static async Task<string> ReadTextAsync(string filePath)
+		{
+			using (FileStream sourceStream = new FileStream(filePath,
+				FileMode.Open, FileAccess.Read, FileShare.Read,
+				bufferSize: 4096, useAsync: true))
+			{
+				StringBuilder sb = new StringBuilder();
+
+				byte[] buffer = new byte[0x1000];
+				int numRead;
+				while ((numRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+				{
+					string text = Encoding.Unicode.GetString(buffer, 0, numRead);
+					sb.Append(text);
+				}
+
+				return sb.ToString();
+			}
+		}
 
 		public static void Swap<T>(ref T arg1, ref T arg2)
 		{

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using TheGuide.System;
 
 namespace TheGuide
 {
@@ -24,12 +25,17 @@ namespace TheGuide
 		// It is recommeneded you start using a DiscordShardedClient upon reaching 1500 guilds
 		// Each shard can handle up to 2500 guilds
 		private DiscordSocketClient _client;
+		
+		// custom variables
+		private ModSystem _modSystem;
 
 		public async Task Run(string[] args)
 		{
 			// Init vars
 			Cts = new CancellationTokenSource();
 			Ct = Cts.Token;
+
+			_modSystem = new ModSystem();
 
 			// Setup objects
 			_client = new DiscordSocketClient(new DiscordSocketConfig()
@@ -50,6 +56,7 @@ namespace TheGuide
 
 			var map = new DependencyMap();
 			map.Add(_client);
+			map.Add(_modSystem);
 
 			Handler = new CommandHandler();
 			await Handler.Install(map);
@@ -80,6 +87,14 @@ namespace TheGuide
 		{
 			if (!_client.CurrentUser.Game.HasValue)
 				await _client.SetGameAsync("READY " + ConfigManager.Properties.Version);
+
+			var timer = new Timer(async _ =>
+			{
+				await _modSystem.Maintain(_client);
+			}, 
+			null, 
+			TimeSpan.Zero, 
+			TimeSpan.FromMinutes(15));
 		}
 
 		internal async Task Login()
