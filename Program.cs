@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -21,15 +20,17 @@ namespace TheGuide
 		internal static CancellationToken Ct;
 		internal static CommandHandler Handler;
 
+
 		// This holds our bot client
 		// If we distribute our bot, we might need to use a DiscordShardedClient
 		// This is for bots that are in many guilds.
 		// It is recommeneded you start using a DiscordShardedClient upon reaching 1500 guilds
 		// Each shard can handle up to 2500 guilds
 		private DiscordSocketClient _client;
-		
+
 		// custom variables
 		private ModSystem _modSystem;
+		private LogManager _log;
 
 		public async Task Run(string[] args)
 		{
@@ -38,6 +39,7 @@ namespace TheGuide
 			Ct = Cts.Token;
 
 			_modSystem = new ModSystem();
+			_log = new LogManager("discord-", "-tmodloader");
 
 			// Setup objects
 			_client = new DiscordSocketClient(new DiscordSocketConfig()
@@ -74,7 +76,9 @@ namespace TheGuide
 		{
 			// #599 Doesn't work, https://github.com/RogueException/Discord.Net/issues/599
 			// ReactionCount not decrementing
-			var msg = await message.GetOrDownloadAsync();
+			// Edit: doesn't work with downloaded messages
+			var msg = message.Value;
+			var user = reaction.User.Value as SocketGuildUser;
 			if (msg != null
 				&& !(reaction.User.Value is IWebhookUser)
 				&& !reaction.User.Value.IsBot
@@ -82,15 +86,21 @@ namespace TheGuide
 			{
 				if (reaction.Emoji.Name == "📌")
 				{
-					if (msg.Reactions[reaction.Emoji].ReactionCount <= 1)
+					if (msg.Reactions[reaction.Emoji].ReactionCount <= 1
+						|| user != null && (user.Roles.Any(x => x.Permissions.Administrator) || user.Guild.OwnerId == user.Id)
+						&& msg.IsPinned)
+					{
 						await msg.UnpinAsync();
+					}
+
 				}
 			}
 		}
 
 		private async Task ClientReactionAdded(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
 		{
-			var msg = await message.GetOrDownloadAsync();
+			var msg = message.Value;
+			var user = reaction.User.Value as SocketGuildUser;
 			if (msg != null
 				&& !(reaction.User.Value is IWebhookUser)
 				&& !reaction.User.Value.IsBot
@@ -98,13 +108,20 @@ namespace TheGuide
 			{
 				if (reaction.Emoji.Name == "❌")
 				{
-					if (msg.Reactions[reaction.Emoji].ReactionCount >= 1)
+					if (msg.Reactions[reaction.Emoji].ReactionCount >= 10
+						|| user != null && (user.Roles.Any(x => x.Permissions.Administrator) || user.Guild.OwnerId == user.Id))
+					{
 						await msg.DeleteAsync();
+					}
 				}
 				else if (reaction.Emoji.Name == "📌")
 				{
-					if (msg.Reactions[reaction.Emoji].ReactionCount >= 1)
+					if (msg.Reactions[reaction.Emoji].ReactionCount >= 20
+						|| user != null && (user.Roles.Any(x => x.Permissions.Administrator) || user.Guild.OwnerId == user.Id)
+						&& !msg.IsPinned)
+					{
 						await msg.PinAsync();
+					}
 				}
 			}
 		}
@@ -112,7 +129,7 @@ namespace TheGuide
 		// Set bot status based on ping
 		private async Task ClientLatencyUpdated(int i, int j)
 		{
-			if (_client.CurrentUser.Game.HasValue 
+			if (_client.CurrentUser.Game.HasValue
 				&& _client.CurrentUser.Game.Value.Name.StartsWith("READY"))
 				await _client.SetGameAsync("Terraria");
 
@@ -133,9 +150,9 @@ namespace TheGuide
 			var timer = new Timer(async _ =>
 			{
 				await _modSystem.Maintain(_client);
-			}, 
-			null, 
-			TimeSpan.Zero, 
+			},
+			null,
+			TimeSpan.Zero,
 			TimeSpan.FromMinutes(15));
 		}
 
@@ -172,7 +189,9 @@ namespace TheGuide
 		{
 			var appInfo = await _client.GetApplicationInfoAsync(); // Get app info of our bot
 			var channel = await appInfo.Owner.CreateDMChannelAsync(); // Get the DM channel with our app owner, create it if it doesn't exist
-			await channel.SendMessageAsync($"I just joined a guild: `{guild.Name}` ({guild.Id})"); // Send a new message in our DM channel
+			var msg = $"I just joined a guild: `{guild.Name}` ({guild.Id})";
+			await channel.SendMessageAsync(msg); // Send a new message in our DM channel
+			await _log.Write(msg);
 		}
 
 		// Our own log handling.
@@ -182,7 +201,7 @@ namespace TheGuide
 			// Default LogMessage.ToString() format is: HH:mm:ss Type Source:Message/Exception
 			string msg = $"[{DateTime.Now:dd/MM/yyyy H:mm:ss zzzz}]" + e.ToString().Substring(8);
 			Console.WriteLine(msg);
-			return Task.CompletedTask;
+			return _log.Write(msg);
 		}
 	}
 }

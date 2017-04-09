@@ -17,7 +17,8 @@
     <PackageReference Include="Discord.Addons.EmojiTools" Version="1.1.0-ci-00017" />
     <PackageReference Include="Discord.Addons.Preconditions" Version="0.1.2-rc" />
     <PackageReference Include="Discord.Addons.SimplePermissions" Version="0.8.19-rc" />
-    <PackageReference Include="Discord.Net" Version="1.0.0-rc2-00683" />
+    <PackageReference Include="Discord.Net" Version="1.0.0-rc2-00698" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup>

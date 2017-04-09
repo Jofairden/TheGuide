@@ -18,9 +18,9 @@ namespace TheGuide
 			public static Color Green => new Color(0f, 1f, 0f);
 			public static Color Blue => new Color(0f, 0f, 1f);
 			public static Color Yellow => new Color(1f, 1f, 0f);
-			public static Color SoftRed => new Color((byte)242, 152, 140);
-			public static Color SoftGreen => new Color((byte)140, 242, 140);
-			public static Color SoftYellow => new Color((byte)242, 235, 140);
+			public static Color SoftRed => new Color((byte)242, (byte)152, (byte)140);
+			public static Color SoftGreen => new Color((byte)140, (byte)242, (byte)140);
+			public static Color SoftYellow => new Color((byte)242, (byte)235, (byte)140);
 
 			public static Color GetLatencyColor(float latency, float offset = 0f) =>
 				latency - offset >= 500

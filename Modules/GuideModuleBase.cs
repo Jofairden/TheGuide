@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection.Metadata;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Addons.EmojiTools;
 using Discord.Commands;
 using Discord.WebSocket;
 using TheGuide.System;
@@ -33,6 +29,7 @@ namespace TheGuide.Modules
 				embed, options);
 
 			await msg.AddReactionAsync("❌");
+			await Task.Delay(1001);
 			await msg.AddReactionAsync("📌");
 
 			return msg;

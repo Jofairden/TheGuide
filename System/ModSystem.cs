@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Commands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
