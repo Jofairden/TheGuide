@@ -23,10 +23,9 @@ namespace TheGuide
 
 		private Task Maintain()
 		{
-			Directory.CreateDirectory(LogPath);
-			var filePath = Path.Combine(LogPath, LogFilePath());
-			if (!File.Exists(filePath))
-				File.Create(filePath).Dispose();
+			Directory.CreateDirectory(LogDir);
+			if (!File.Exists(LogPath))
+				File.Create(LogPath).Dispose();
 			return Task.CompletedTask;
 		}
 

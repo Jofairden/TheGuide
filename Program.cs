@@ -30,7 +30,7 @@ namespace TheGuide
 
 		// custom variables
 		private ModSystem _modSystem;
-		private LogManager _log;
+		private LogManager _logger;
 
 		public async Task Run(string[] args)
 		{
@@ -39,7 +39,7 @@ namespace TheGuide
 			Ct = Cts.Token;
 
 			_modSystem = new ModSystem();
-			_log = new LogManager("discord-", "-tmodloader");
+			_logger = new LogManager("discord-", "-tmodloader");
 
 			// Setup objects
 			_client = new DiscordSocketClient(new DiscordSocketConfig()
@@ -62,6 +62,7 @@ namespace TheGuide
 			var map = new DependencyMap();
 			map.Add(_client);
 			map.Add(_modSystem);
+			map.Add(_logger);
 
 			Handler = new CommandHandler();
 			await Handler.Install(map);
@@ -191,7 +192,7 @@ namespace TheGuide
 			var channel = await appInfo.Owner.CreateDMChannelAsync(); // Get the DM channel with our app owner, create it if it doesn't exist
 			var msg = $"I just joined a guild: `{guild.Name}` ({guild.Id})";
 			await channel.SendMessageAsync(msg); // Send a new message in our DM channel
-			await _log.Write(msg);
+			await _logger.Write(msg);
 		}
 
 		// Our own log handling.
@@ -201,7 +202,7 @@ namespace TheGuide
 			// Default LogMessage.ToString() format is: HH:mm:ss Type Source:Message/Exception
 			string msg = $"[{DateTime.Now:dd/MM/yyyy H:mm:ss zzzz}]" + e.ToString().Substring(8);
 			Console.WriteLine(msg);
-			return _log.Write(msg);
+			return _logger.Write(msg);
 		}
 	}
 }
